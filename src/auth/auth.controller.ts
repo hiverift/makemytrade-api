@@ -8,7 +8,7 @@ import { CurrentUser } from '../common/decorators/user.decorator';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(private readonly auth: AuthService) { }
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
@@ -20,14 +20,14 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
-    @Post('refresh')
-    refresh(@Body() dto: RefreshDto, @CurrentUser('userId') userId?: string) {
-      // If you want refresh without auth header, parse ID from token instead.
-      // Simpler: expect userId packed in token; we'll decode inside service.
-      const decoded: any = undefined;
+  @Post('refresh')
+  refresh(@Body() dto: RefreshDto, @CurrentUser('userId') userId?: string) {
+    // If you want refresh without auth header, parse ID from token instead.
+    // Simpler: expect userId packed in token; we'll decode inside service.
+    const decoded: any = undefined;
 
-      return this.auth.refresh(decoded?.sub ?? dto.userId ?? '', dto.refreshToken);
-    }
+    return this.auth.refresh(decoded?.sub ?? dto.userId ?? '', dto.refreshToken);
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')

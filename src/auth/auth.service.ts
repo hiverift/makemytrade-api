@@ -33,21 +33,30 @@ export class AuthService {
     return { accessToken: access, refreshToken: refresh };
   }
 
-  async register(dto: RegisterDto) {
-    try {
-      const existing = await this.users.findByEmail(dto.email);
-      if (existing) return new CustomError(403, 'Email already registered');
+ async register(dto: RegisterDto) {
+  try {
+   const extisMobile = await this.users.findByMobile(dto.mobile);
+    if (extisMobile) return new CustomError(403, 'mobile already registered');
 
-      const created = await this.users.create({ ...dto, role: 'user' });
-      const user = await this.users.findByEmail(created.email);
+    const existing = await this.users.findByEmail(dto.email);
+    if (existing) return new CustomError(403, 'Email already registered');
 
-      const tokens = await this.signTokens(user as any);
+  
+    const role = dto.role ?? 'user';
+    console.log('role',role);
+   
+    const created = await this.users.create({ ...dto, role });
+    const user = await this.users.findByEmail(created.email);
 
-      return new CustomResponse(200, 'Registration successful', { user: created, ...tokens });
-    } catch (e) {
-      return new CustomError(500, 'Registration failed');
-    }
+
+    const tokens = await this.signTokens(user as any);
+
+    return new CustomResponse(200, 'Registration successful', { user: created, ...tokens });
+  } catch (e) {
+    return new CustomError(500, 'Registration failed',);
   }
+}
+
 
 async login(dto: LoginDto) {
   try {

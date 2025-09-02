@@ -23,8 +23,6 @@ export class CoursesService {
         try {
 
 
-            // ✅ Validate categoryId
-            console.log('Which model is used?', image);
             if (!Types.ObjectId.isValid(dto.categoryId)) {
                 return new CustomError(400, 'Invalid category ID');
             }
@@ -44,7 +42,7 @@ export class CoursesService {
                     return new CustomError(400, 'SubCategory does not belong to given Category');
                 }
             }
-            console.log('image',image)
+          
              const uploadedFileName = image
                             ? fileUpload('courseImage', image)
                             : null;

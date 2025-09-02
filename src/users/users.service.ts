@@ -20,15 +20,13 @@ export class UsersService {
 
   async create(dto: CreateUserDto) {
     try {
-      const exists = await this.userModel.findOne({ email: dto.email });
-      console.log('hiii',exists);
-      if (exists) throw new ConflictException('Email already registered');
-
+  
       const passwordHash = await this.hash(dto.password);
       const user = new this.userModel({
         email: dto.email,
         name: dto.name,
         passwordHash,
+        mobile:dto.mobile,
         role: dto.role ?? 'user',
       });
       await user.save();

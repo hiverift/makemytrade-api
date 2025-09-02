@@ -9,6 +9,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const port = config.get<number>('PORT') ?? 4000;
   const isDev = config.get<string>('NODE_ENV') !== 'production';
+  console.log(isDev, 'development');
    app.enableCors(
   isDev
     ? {

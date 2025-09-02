@@ -5,6 +5,14 @@ import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+   app.enableCors({
+    origin: '*', // allow all origins
+    methods: '*', // allow all HTTP methods
+    allowedHeaders: '*', // allow all headers
+    credentials: true,
+    preflightContinue: false, // let NestJS handle preflight automatically
+    optionsSuccessStatus: 204, // response code for successful preflight
+  });
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes( new ValidationPipe({
       whitelist: true,

@@ -151,4 +151,16 @@ export class UsersService {
       return new CustomError(500, 'Failed to validate refresh token');
     }
   }
+  async findByEmailOrMobile(identifier: string, includeSecrets = false) {
+  const q = this.userModel.findOne({
+    $or: [{ email: identifier }, { mobile: identifier }],
+  });
+  if (includeSecrets) q.select('+passwordHash +refreshTokenHash');
+  return q;
+}
+async findByMobile(mobile: string, includeSecrets = false) {
+  const q = this.userModel.findOne({ mobile });
+  if (includeSecrets) q.select('+passwordHash +refreshTokenHash');
+  return q;
+}
 }

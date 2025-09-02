@@ -1,6 +1,19 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString,IsOptional,IsIn, MinLength } from 'class-validator';
 
 export class LoginDto {
-  @IsEmail() email: string;
-  @IsString() @MinLength(6) password: string;
+ @IsOptional()
+  @IsEmail()
+  email?: string;   // 👈 Optional email
+
+  @IsOptional()
+  @IsString()
+  mobile?: string;  // 👈 Optional mobile
+
+  @IsString()
+  @MinLength(6)
+  password: string;
+
+   @IsString()
+  @IsIn(['user', 'admin'])   // 👈 role भी पास करना होगा
+  role: 'user' | 'admin';
 }

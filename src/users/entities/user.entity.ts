@@ -1,4 +1,3 @@
-// If your file is src/users/entities/user.entity.ts OR src/users/schemas/user.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
@@ -9,6 +8,9 @@ export class User {
   @Prop({ type: String, required: true, unique: true, lowercase: true, trim: true })
   email!: string;
 
+  @Prop({ type: String, required: true, unique: true, trim: true })
+  mobile!: string;   // 👈 नया field (unique भी)
+
   @Prop({ type: String, required: true })
   name!: string;
 
@@ -16,9 +18,11 @@ export class User {
   passwordHash!: string;
 
   @Prop({ type: String, enum: ['user', 'admin'], default: 'user' })
-  role!: 'user' | 'admin';
+  role!: 'user' | 'admin';  // 👈 string-based role
 
-  // 👇 Explicitly declare the type to avoid CannotDetermineTypeError
+  @Prop({ type: Number, enum: [0, 1], default: 1 })
+  userType!: number; // 👈 optional (0=admin, 1=user)
+
   @Prop({ type: String, default: null, select: false })
   refreshTokenHash!: string | null;
 }

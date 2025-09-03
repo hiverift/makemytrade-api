@@ -42,17 +42,17 @@ export class CoursesService {
                     return new CustomError(400, 'SubCategory does not belong to given Category');
                 }
             }
-          
-             const uploadedFileName = image
-                            ? fileUpload('courseImage', image)
-                            : null;
-              console.log(uploadedFileName);
+
+            const uploadedFileName = image
+                ? fileUpload('courseImage', image)
+                : null;
+            console.log(uploadedFileName);
 
             const course = new this.courseModel({
                 ...dto,
-                 image: uploadedFileName
-                        ? `${process.env.SERVER_BASE_URL}uploads/courseImage/${uploadedFileName}`
-                        : image, 
+                image: uploadedFileName
+                    ? `${process.env.SERVER_BASE_URL}uploads/courseImage/${uploadedFileName}`
+                    : image,
             });
 
             await course.save();
@@ -110,9 +110,31 @@ export class CoursesService {
             return new CustomError(500, 'Failed to fetch category courses');
         }
     }
+ 
+     async findBySubCategory(subCategoryId: string) {
+  try {
+    if (!Types.ObjectId.isValid(subCategoryId)) {
+      return new CustomError(400, 'Invalid subCategory ID');
+    }
 
-    async update(id: string, dto: UpdateCourseDto) {
+    const subCategory = await this.subCategoryModel.findById(subCategoryId);
+    if (!subCategory) return new CustomError(404, 'SubCategory not found');
+
+    const courses = await this.courseModel
+      .find({ subCategoryId })
+      .populate('categoryId')
+      .lean();
+
+    return new CustomResponse(200, 'Courses by subCategory fetched successfully', courses);
+  } catch (e) {
+    console.error('Course findBySubCategory error:', e);
+    return new CustomError(500, 'Failed to fetch subCategory courses');
+  }
+}
+
+    async update(id: string, dto: UpdateCourseDto, image?: Express.Multer.File) {
         try {
+            console.log(dto.title)
             if (!Types.ObjectId.isValid(id)) return new CustomError(400, 'Invalid course ID');
 
             // ✅ validate category and subCategory if provided
@@ -125,14 +147,30 @@ export class CoursesService {
                 if (!subCategory) return new CustomError(404, 'SubCategory not found');
             }
 
-            const course = await this.courseModel.findByIdAndUpdate(id, dto, { new: true });
+            // ✅ handle image upload
+            let uploadedFileName: string | null = null;
+            if (image) {
+                uploadedFileName = fileUpload('courseImage', image);
+            }
+
+            const updateData: any = {
+                ...dto,
+            };
+            console.log('hiiidine ondoe ', updateData)
+            if (uploadedFileName) {
+                updateData.image = `${process.env.SERVER_BASE_URL}uploads/courseImage/${uploadedFileName}`;
+            }
+
+            const course = await this.courseModel.findByIdAndUpdate(id, updateData, { new: true });
             if (!course) return new CustomError(404, 'Course not found');
 
             return new CustomResponse(200, 'Course updated successfully', course);
         } catch (e) {
+            console.error('Course update error:', e);
             return new CustomError(500, 'Failed to update course');
         }
     }
+
 
     async remove(id: string) {
         try {

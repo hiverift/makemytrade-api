@@ -19,25 +19,35 @@ export class CoursesController {
      return this.service.create(dto, image);
   }
 
-  @Get()
+  @Get('getAllCourses')
   findAll() {
     return this.service.findAll();
   }
 
-  @Get(':id')
+  @Get('getCoursesById/:id')
   findById(@Param('id') id: string) {
     return this.service.findById(id);
   }
 
-  @Get('category/:id')
+  @Get('getCoursesByCategoryId/:id')
   findByCategory(@Param('id') categoryId: string) {
     return this.service.findByCategory(categoryId);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateCourseDto) {
-    return this.service.update(id, dto);
-  }
+  @Get('getCoursesBySubCategoryId/:id')
+findBySubCategory(@Param('id') subCategoryId: string) {
+  return this.service.findBySubCategory(subCategoryId);
+}
+
+ @Put(':id')
+@UseInterceptors(FileInterceptor('image'))
+async update(
+  @Param('id') id: string,
+  @UploadedFile() image: Express.Multer.File,
+  @Body() dto: UpdateCourseDto,
+) {
+  return this.service.update(id, dto, image);
+}
 
   @Delete(':id')
   remove(@Param('id') id: string) {

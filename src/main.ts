@@ -11,11 +11,23 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     const config = app.get(ConfigService);
     const port = config.get<number>('PORT') ?? 4000;
+    const isDev = config.get<string>('NODE_ENV') !== 'production';
+
+    // Log environment for debugging
+    console.log('Server Config:', {
+      port,
+      isDev,
+      nodeEnv: config.get<string>('NODE_ENV'),
+    });
 
     // Configure CORS to allow local and live frontends
     app.enableCors({
-      origin: 'https://cakistockmarket.com',
-      credentials: true,
+      origin: isDev
+        ? ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4000'] // Add your local frontend ports
+        : ['https://cakistockmarket.com', 'http://69.62.78.239:4000'], // Live frontend and direct IP
+      credentials: true, // Allow cookies/headers if needed
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Expl icitly allow methods
+      allowedHeaders: ['Content-Type', 'Authorization'], // Allow common headers
     });
 
     // Set global API prefix

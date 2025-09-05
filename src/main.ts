@@ -23,7 +23,7 @@ async function bootstrap() {
     // Configure CORS to allow local and live frontends
     app.enableCors({
       origin: isDev
-        ? ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4000'] // Add your local frontend ports
+        ? ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4000','https://cakistockmarket.com','https://www.cakistockmarket.com'] // Add your local frontend ports
         : ['https://cakistockmarket.com', 'http://69.62.78.239:4000'], // Live frontend and direct IP
       credentials: true, // Allow cookies/headers if needed
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Expl icitly allow methods

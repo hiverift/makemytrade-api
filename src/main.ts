@@ -3,47 +3,61 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as dotenv from 'dotenv';
+import helmet from 'helmet'; // default import works better with types
+import { NestExpressApplication } from '@nestjs/platform-express'; // 👈 import this
 
 async function bootstrap() {
   try {
-    // Load environment variables
     dotenv.config();
-    const app = await NestFactory.create(AppModule);
+
+    // 👇 tell Nest that we want an Express app
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
     const config = app.get(ConfigService);
-    const port = config.get<number>('PORT') ?? 4000;
-    const isDev = config.get<string>('NODE_ENV') !== 'production';
 
-    // Log environment for debugging
-    console.log('Server Config:', {
-      port,
-      isDev,
-      nodeEnv: config.get<string>('NODE_ENV'),
-    });
+    const port = parseInt(config.get<string>('PORT') ?? '4000', 10);
+    const nodeEnv = config.get<string>('NODE_ENV') ?? 'development';
+    const isDev = nodeEnv !== 'production';
 
-    // Configure CORS to allow local and live frontends
+    console.log('Server Config:', { port, isDev, nodeEnv });
+
+    // Express-specific settings now work
+    app.set('trust proxy', 1);
+
+    // Security headers
+    app.use(helmet());
+
+    const allowedOrigins = isDev
+      ? ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4000']
+      : [
+          'https://cakistockmarket.com',
+          'https://www.cakistockmarket.com',
+        ];
+
     app.enableCors({
-      origin: isDev
-        ? ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4000','https://cakistockmarket.com','https://www.cakistockmarket.com'] // Add your local frontend ports
-        : ['https://cakistockmarket.com', 'http://69.62.78.239:4000'], // Live frontend and direct IP
-      credentials: true, // Allow cookies/headers if needed
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Expl icitly allow methods
-      allowedHeaders: ['Content-Type', 'Authorization'], // Allow common headers
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+      ],
+      maxAge: 86400,
     });
 
-    // Set global API prefix
     app.setGlobalPrefix('api/v1');
 
-    // Configure ValidationPipe
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
         transform: true,
         transformOptions: { enableImplicitConversion: true },
-        disableErrorMessages: false, // Show validation errors
+        disableErrorMessages: false,
       }),
     );
 
-    // Bind to 0.0.0.0 for external access
     await app.listen(port, '0.0.0.0');
     console.log(`API running on http://0.0.0.0:${port}/api/v1`);
   } catch (error) {

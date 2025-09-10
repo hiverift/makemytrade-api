@@ -3,14 +3,13 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as dotenv from 'dotenv';
-import helmet from 'helmet'; // default import works better with types
-import { NestExpressApplication } from '@nestjs/platform-express'; // 👈 import this
+import helmet from 'helmet';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
   try {
     dotenv.config();
 
-    // 👇 tell Nest that we want an Express app
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
     const config = app.get(ConfigService);
 
@@ -20,22 +19,33 @@ async function bootstrap() {
 
     console.log('Server Config:', { port, isDev, nodeEnv });
 
-    // Express-specific settings now work
     app.set('trust proxy', 1);
-
-    // Security headers
     app.use(helmet());
 
+    // Whitelist: dev और prod दोनों के लिए canonical origins डालो
     const allowedOrigins = isDev
       ? ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4000']
-      : [
-          'https://cakistockmarket.com',
-          'https://www.cakistockmarket.com',
-        ];
+      : ['https://cakistockmarket.com', 'https://www.cakistockmarket.com'];
 
+    // Strict CORS: validate origin per request and echo exact origin for credentials
     app.enableCors({
-      origin: allowedOrigins,
-      credentials: true,
+      origin: (origin, callback) => {
+        // अगर कोई non-browser request (server-to-server, curl) जिसमें Origin नहीं होता,
+        // उन्हें allow करने के लिए null origin को true कर रहे हैं — यदि नहीं चाहिए तो change कर देना.
+        if (!origin) {
+          return callback(null, true);
+        }
+
+        // Debug log (optional) — हटाना चाहो तो comment कर दो
+        if (!allowedOrigins.includes(origin)) {
+          console.warn(`CORS blocked origin: ${origin}`);
+          return callback(new Error('Not allowed by CORS'), false);
+        }
+
+        // Allowed origin -> pass true
+        return callback(null, true);
+      },
+      credentials: true, // cookie/session भेजनी हो तो जरूरी
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: [
         'Content-Type',
@@ -43,6 +53,7 @@ async function bootstrap() {
         'X-Requested-With',
         'Accept',
         'Origin',
+        'Cache-Control',
       ],
       maxAge: 86400,
     });

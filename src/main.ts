@@ -22,30 +22,32 @@ async function bootstrap() {
     app.set('trust proxy', 1);
     app.use(helmet());
 
-    // Whitelist: dev और prod दोनों के लिए canonical origins डालो
-    const allowedOrigins = isDev
+    // Read allowed origins from env (comma-separated). Fallback to sensible defaults.
+    const envOrigins = (process.env.ALLOWED_ORIGINS ?? '').trim();
+    const defaultOrigins = isDev
       ? ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4000']
       : ['https://cakistockmarket.com', 'https://www.cakistockmarket.com'];
 
-    // Strict CORS: validate origin per request and echo exact origin for credentials
+    const allowedOrigins = envOrigins
+      ? envOrigins.split(',').map((s) => s.trim()).filter(Boolean)
+      : defaultOrigins;
+
+    console.log('CORS allowed origins:', allowedOrigins);
+
     app.enableCors({
       origin: (origin, callback) => {
-        // अगर कोई non-browser request (server-to-server, curl) जिसमें Origin नहीं होता,
-        // उन्हें allow करने के लिए null origin को true कर रहे हैं — यदि नहीं चाहिए तो change कर देना.
-        if (!origin) {
+        // allow requests with no origin (curl, server-to-server). If you want to block them, change this.
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
 
-        // Debug log (optional) — हटाना चाहो तो comment कर दो
-        if (!allowedOrigins.includes(origin)) {
-          console.warn(`CORS blocked origin: ${origin}`);
-          return callback(new Error('Not allowed by CORS'), false);
-        }
-
-        // Allowed origin -> pass true
-        return callback(null, true);
+        // not allowed
+        console.warn(`CORS blocked origin: ${origin}`);
+        return callback(new Error('Not allowed by CORS'), false);
       },
-      credentials: true, // cookie/session भेजनी हो तो जरूरी
+      credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: [
         'Content-Type',
@@ -70,7 +72,7 @@ async function bootstrap() {
     );
 
     await app.listen(port, '0.0.0.0');
-    console.log(`API running on http://0.0.0.0:${port}/api/v1`);
+    console.log(`API running on http://localhost:${port}/api/v1`);
   } catch (error) {
     console.error('Server failed to start:', error);
     process.exit(1);

@@ -11,6 +11,9 @@ import { join } from 'path';
 import { ContactModule } from './contact/contact.module';
 import { WebinarsModule } from './webinar/webinar.module';
 import { ConsultanciesModule } from './consultancies/consultancies.module';
+import { FaqsModule } from './faq/faqs.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { ServicesModule } from './services/services.module';
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { ConsultanciesModule } from './consultancies/consultancies.module';
     ContactModule,
     WebinarsModule,
     ConsultanciesModule,
+    FaqsModule,
+    BookingsModule,
+    ServicesModule
   ],
 })
 export class AppModule {}

@@ -270,16 +270,35 @@ async availability(serviceId: string, monthOrDay?: string, includeFull = false) 
     }catch(e:any){ this.logger.error(e); return new CustomError(500,e?.message||'Confirm payment failed');}
   }
 
-  // My bookings (user)
-  async myBookings(userId:string){
-    try{
-      const list = await this.bookingModel.find({ userId })
-        .populate({path:'serviceId', select:'name durationMinutes price'})
-        .populate({path:'slotId', select:'start end'})
-        .sort({createdAt:-1}).lean();
-      return new CustomResponse(200,'Bookings fetched', list);
-    }catch(e:any){ return new CustomError(500,e?.message||'Fetch bookings failed');}
+
+async myBookings(userId: string) {
+  try {
+    // validate
+    if (!userId) return new CustomError(400, 'userId is required');
+    if (!Types.ObjectId.isValid(userId)) return new CustomError(400, 'Invalid user id');
+
+    // cast to ObjectId to avoid mismatch
+    const uid = new Types.ObjectId(userId);
+
+    const list = await this.bookingModel.find({ userId: uid })
+      .populate({ path: 'serviceId', select: 'name durationMinutes price' })
+      .populate({ path: 'slotId', select: 'start end' })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // helpful info if empty
+    if (!list || list.length === 0) {
+      this.logger.debug(`myBookings: no bookings found for user ${userId}`);
+      return new CustomResponse(200, 'No bookings found', []);
+    }
+
+    return new CustomResponse(200, 'Bookings fetched', list);
+  } catch (e: any) {
+    this.logger.error('myBookings error:', e);
+    return new CustomError(500, e?.message || 'Fetch bookings failed');
   }
+}
+
 
   // Cancel (before start) — refund flow not implemented
   async cancel(bookingId:string){

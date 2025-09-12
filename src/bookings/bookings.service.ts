@@ -148,17 +148,65 @@ async bulkCreateSlots(dto: any) {
 
 
   // calendar availability (public)
-  async availability(serviceId:string, month:string){ // month = "2025-09"
-    try{
-      if(!isValidObjectId(serviceId)) return new CustomError(400,'Invalid service id');
-      const start = new Date(`${month}-01T00:00:00.000Z`);
-      const end = new Date(new Date(start).setMonth(start.getMonth()+1));
-      const slots = await this.slotModel.find({
-        serviceId, active:true, start: { $gte: start, $lt: end }, seatsLeft: { $gt: 0 }
-      }).sort({start:1}).lean();
-      return new CustomResponse(200,'Availability fetched', slots);
-    }catch(e:any){ return new CustomError(500,e?.message||'Fetch availability failed');}
+  // add at top if not present:
+// import { isValidObjectId, Types } from 'mongoose';
+
+async availability(serviceId: string, monthOrDay?: string, includeFull = false) {
+  try {
+    // basic validation
+    if (!serviceId || !isValidObjectId(serviceId)) {
+      return new CustomError(400, 'Invalid service id');
+    }
+
+    // build base query
+    const q: any = { serviceId: new Types.ObjectId(serviceId), active: true };
+
+    // seatsLeft filter (skip if includeFull true)
+    if (!includeFull) q.seatsLeft = { $gt: 0 };
+
+    // handle month (YYYY-MM) or day (YYYY-MM-DD)
+    if (monthOrDay) {
+      const raw = String(monthOrDay).trim();
+      const monthMatch = raw.match(/^(\d{4})-(\d{2})$/);
+      const dayMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+      if (monthMatch) {
+        const year = Number(monthMatch[1]);
+        const month = Number(monthMatch[2]) - 1;
+        const start = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+        const end = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0));
+        q.start = { $gte: start, $lt: end };
+      } else if (dayMatch) {
+        const day = raw.substring(0, 10);
+        const start = new Date(`${day}T00:00:00.000Z`);
+        const end = new Date(`${day}T23:59:59.999Z`);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          return new CustomError(400, 'Invalid date format (use YYYY-MM or YYYY-MM-DD)');
+        }
+        q.start = { $gte: start, $lte: end };
+      } else {
+        return new CustomError(400, 'Invalid date format (use YYYY-MM or YYYY-MM-DD)');
+      }
+    } else {
+      // default: upcoming month from now (optional) — here we will fetch upcoming slots
+      q.start = { $gte: new Date() };
+    }
+
+    // debug: print the query (server console)
+    this.logger.debug('availability query -> ' + JSON.stringify(q));
+
+    const slots = await this.slotModel.find(q).sort({ start: 1 }).populate({
+      path: 'serviceId',
+      select: 'name price durationMinutes',
+    }).lean();
+
+    return new CustomResponse(200, 'Availability fetched', slots);
+  } catch (e: any) {
+    this.logger.error('Availability error', e);
+    return new CustomError(500, e?.message || 'Fetch availability failed');
   }
+}
+
 
   // ---------- Booking (User) ----------
   // Step 1: create booking (hold seat) + "mock payment intent"
@@ -250,4 +298,86 @@ async bulkCreateSlots(dto: any) {
       return new CustomResponse(200,'Booking cancelled', { cancelled:true });
     }catch(e:any){ return new CustomError(500,e?.message||'Cancel failed');}
   }
+
+  // inside BookingsService class (src/bookings/bookings.service.ts)
+
+// GET single slot by id (detailed)
+async getSlotById(id: string) {
+  try {
+    if (!isValidObjectId(id)) return new CustomError(400, 'Invalid slot ID');
+
+    const slot = await this.slotModel
+      .findById(id)
+      .populate({ path: 'serviceId', select: 'name price durationMinutes' })
+      .lean();
+
+    if (!slot) return new CustomError(404, 'Slot not found');
+
+    return new CustomResponse(200, 'Slot fetched', slot);
+  } catch (e: any) {
+    this.logger.error('getSlotById error', e);
+    return new CustomError(500, e?.message ?? 'Failed to fetch slot');
+  }
+}
+
+// GET slots by serviceId and date (date = YYYY-MM-DD)
+// imports needed at top of file:
+// import { isValidObjectId, Types } from 'mongoose';
+
+async getSlotsByServiceAndDate(serviceId: string, dateStr?: string) {
+  try {
+    // validate serviceId
+    if (!serviceId || !isValidObjectId(serviceId)) return new CustomError(400, 'Invalid service ID');
+
+    // Build base query
+    const q: any = { serviceId: new Types.ObjectId(serviceId) };
+
+    // Only active slots by default and with seats left (change if you want to show full slots too)
+    q.active = true;
+    q.seatsLeft = { $gt: 0 };
+
+    // If dateStr provided — accept YYYY-MM or YYYY-MM-DD
+    if (dateStr) {
+      const raw = String(dateStr).trim();
+      // month format: "YYYY-MM"
+      const monthMatch = raw.match(/^(\d{4})-(\d{2})$/);
+      const dayMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+      if (monthMatch) {
+        const year = Number(monthMatch[1]);
+        const month = Number(monthMatch[2]) - 1; // JS months 0-11
+        const start = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+        const end = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0)); // first day of next month
+        q.start = { $gte: start, $lt: end };
+      } else if (dayMatch) {
+        const day = raw.substring(0, 10); // YYYY-MM-DD
+        const start = new Date(`${day}T00:00:00.000Z`);
+        const end = new Date(`${day}T23:59:59.999Z`);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          return new CustomError(400, 'Invalid date format (use YYYY-MM or YYYY-MM-DD)');
+        }
+        q.start = { $gte: start, $lte: end };
+      } else {
+        return new CustomError(400, 'Invalid date format (use YYYY-MM or YYYY-MM-DD)');
+      }
+    } else {
+      // no date: optionally filter to only upcoming slots (from now)
+      q.start = { $gte: new Date() };
+    }
+
+    // Execute query
+    const slots = await this.slotModel
+      .find(q)
+      .sort({ start: 1 })
+      .populate({ path: 'serviceId', select: 'name price durationMinutes' })
+      .lean();
+
+    return new CustomResponse(200, 'Slots fetched', slots);
+  } catch (e: any) {
+    this.logger.error('getSlotsByServiceAndDate error', e);
+    return new CustomError(500, e?.message ?? 'Failed to fetch slots');
+  }
+}
+
+
 }

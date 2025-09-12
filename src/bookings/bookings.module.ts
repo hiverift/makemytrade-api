@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Slot,SlotSchema } from './entities/slot.schema';
 import { Booking,BookingSchema } from './entities/booking.entity';
 import { ServiceItem,ServiceItemSchema } from 'src/services/entities/service.entity';
 import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
+import { ServicesModule } from 'src/services/services.module';
 
 @Module({
   imports:[
@@ -12,9 +13,13 @@ import { BookingsController } from './bookings.controller';
       { name: Slot.name, schema: SlotSchema },
       { name: Booking.name, schema: BookingSchema },
       { name: ServiceItem.name, schema: ServiceItemSchema },
-    ]),
+    ],
+    
+  ),forwardRef(() => ServicesModule),
+    
   ],
   providers:[BookingsService],
   controllers:[BookingsController],
+  exports:[BookingsService]
 })
 export class BookingsModule {}

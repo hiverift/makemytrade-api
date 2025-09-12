@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model ,isValidObjectId, Types} from 'mongoose';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
 import { ServiceItem } from './entities/service.entity';
@@ -51,4 +51,6 @@ export class ServicesService {
       return new CustomResponse(200,'Service deleted',{deleted:true});
     }catch(e:any){ return new CustomError(500,e?.message||'Delete failed');}
   }
+
+  
 }

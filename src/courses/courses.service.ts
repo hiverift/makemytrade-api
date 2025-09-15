@@ -77,6 +77,15 @@ export class CoursesService {
         }
     }
 
+    async activCourses() {
+        try {
+            const courses = await this.courseModel.countDocuments().lean();
+            return  courses;
+        } catch (e) {
+            return new CustomError(500, 'Failed to fetch courses');
+        }
+    }
+
     async findById(id: string) {
         try {
             if (!Types.ObjectId.isValid(id)) return new CustomError(400, 'Invalid course ID');

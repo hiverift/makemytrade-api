@@ -68,14 +68,22 @@ export class UsersService {
   }
 
   async findAll() {
+   try {
+    const users = await this.userModel.find().lean();
+    const cleaned = users.map(u => {
+      delete (u as any).passwordHash;
+      delete (u as any).refreshTokenHash;
+      return u;
+    });
+    return new CustomResponse(200, 'Users fetched successfully', cleaned);
+  } catch (e) {
+    return new CustomError(500, 'Failed to fetch users');
+  }
+  }
+   async findAllUsers() {
     try {
-      const users = await this.userModel.find().lean();
-      const cleaned = users.map(u => {
-        delete (u as any).passwordHash;
-        delete (u as any).refreshTokenHash;
-        return u;
-      });
-      return new CustomResponse(200, 'Users fetched successfully', cleaned);
+      const users = await this.userModel.countDocuments().lean();
+      return  users;
     } catch (e) {
       return new CustomError(500, 'Failed to fetch users');
     }

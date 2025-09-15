@@ -15,8 +15,8 @@ export class Course extends Document {
   @Prop()
   duration: string;
 
- @Prop({ required: true, type: Number })
-price: number;
+  @Prop({ required: true, type: Number })
+  price: number;
 
   @Prop({ enum: ['Beginner', 'Intermediate', 'Advanced'] })
   level: string;

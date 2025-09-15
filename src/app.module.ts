@@ -14,6 +14,9 @@ import { ConsultanciesModule } from './consultancies/consultancies.module';
 import { FaqsModule } from './faq/faqs.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { ServicesModule } from './services/services.module';
+import { NotificationsModule } from './notificaions/notificaions.module';
+import { DashboardServiceModule } from './dashboard-service/dashboard-service.module';
+import { TransactionModule } from './transaction/transaction.module';
 
 @Module({
   imports: [
@@ -31,7 +34,10 @@ import { ServicesModule } from './services/services.module';
     ConsultanciesModule,
     FaqsModule,
     BookingsModule,
-    ServicesModule
+    ServicesModule,
+    NotificationsModule,
+    DashboardServiceModule,
+    TransactionModule
   ],
 })
 export class AppModule {}

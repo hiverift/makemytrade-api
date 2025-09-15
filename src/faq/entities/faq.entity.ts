@@ -3,8 +3,12 @@ import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Faq extends Document {
+
   @Prop({ required: true })
   question: string;
+   
+  @Prop({ required: true })
+  title: string;
 
   @Prop({ required: true })
   answer: string;

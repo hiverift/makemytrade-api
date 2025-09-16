@@ -17,6 +17,7 @@ import { ServicesModule } from './services/services.module';
 import { NotificationsModule } from './notificaions/notificaions.module';
 import { DashboardServiceModule } from './dashboard-service/dashboard-service.module';
 import { TransactionModule } from './transaction/transaction.module';
+import { KycModule } from './kyc/kyc.module';
 
 @Module({
   imports: [
@@ -37,7 +38,8 @@ import { TransactionModule } from './transaction/transaction.module';
     ServicesModule,
     NotificationsModule,
     DashboardServiceModule,
-    TransactionModule
+    TransactionModule,
+    KycModule
   ],
 })
 export class AppModule {}

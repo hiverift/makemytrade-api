@@ -17,7 +17,7 @@ export class Kyc {
   @Prop({ required: true })
   panFrontDoc: string;     // PAN front document path
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   panBackDoc: string;      // PAN back document path
 
   @Prop({ required: true, enum: ['pending', 'under_review', 'verified', 'rejected'], default: 'pending' })

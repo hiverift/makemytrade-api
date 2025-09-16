@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Param, Body, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Post,Req, Get, Put, Param, Body, UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { KycService } from './kyc.service';
 import { CreateKycDto } from './dto/create-kyc.dto';
 import CustomResponse from 'src/providers/custom-response.service';
@@ -40,8 +40,31 @@ export class KycController {
     return this.kycService.getKycStatus(userId);
   }
 
-  @Put('status/:userId')
-  updateKycStatus(@Param('userId') userId: string, @Body() body: { status: string; remark?: string }){
-    return this.kycService.updateKycStatus(userId, body.status, body.remark);
+ @Put('status/:userId')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'aadhaarFront', maxCount: 1 },
+      { name: 'aadhaarBack', maxCount: 1 },
+      { name: 'panFront', maxCount: 1 },
+      { name: 'panBack', maxCount: 1 },
+    ]),
+  )
+  updateKycStatus(
+    @Param('userId') userId: string,
+    @Body() body: any, // keep any while debugging; later you can use DTO
+    @UploadedFiles() files: {
+      aadhaarFront?: Express.Multer.File[],
+      aadhaarBack?: Express.Multer.File[],
+      panFront?: Express.Multer.File[],
+      panBack?: Express.Multer.File[],
+    },
+    @Req() req: any,
+  ) {
+    // debug logs (remove in production)
+    console.log('content-type:', req.headers['content-type']);
+    console.log('body:', body);
+    console.log('files:', Object.keys(files || {}));
+    // pass status/remark and files to service
+    return this.kycService.updateKycStatus(userId, body?.status, body?.remark, files);
   }
 }

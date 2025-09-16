@@ -6,6 +6,8 @@ import { CreateKycDto } from './dto/create-kyc.dto';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
 import { fileUpload } from 'src/util/fileupload';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class KycService {
@@ -83,20 +85,89 @@ export class KycService {
       throw new CustomError(500, 'Failed to fetch KYC status');
     }
   }
-
-  async updateKycStatus(userId: string, status: string, remark?: string): Promise<CustomResponse> {
+async updateKycStatus(
+    userId: string,
+    status?: string,
+    remark?: string,
+    files?: {
+      aadhaarFront?: Express.Multer.File[],
+      aadhaarBack?: Express.Multer.File[],
+      panFront?: Express.Multer.File[],
+      panBack?: Express.Multer.File[],
+    }
+  ): Promise<CustomResponse> {
     try {
-      const kyc = await this.kycModel.findOneAndUpdate(
-        { userId },
-        { status, remark },
-        { new: true, runValidators: true },
-      );
+      const kyc = await this.kycModel.findOne({ userId });
       if (!kyc) {
         throw new CustomError(404, 'KYC record not found');
       }
-      return new CustomResponse(200, 'KYC status updated successfully', kyc);
+
+      const updates: Partial<Kyc> = {};
+
+      // update status/remark if provided
+      if (typeof status === 'string' && status.trim() !== '') {
+        updates.status = status;
+      }
+      if (typeof remark === 'string') {
+        updates.remark = remark;
+      }
+
+      // helper to delete old file given stored url
+      const deleteOldFile = (fileUrl?: string) => {
+        if (!fileUrl) return;
+        try {
+          const fileName = path.basename(fileUrl);
+          const filePath = path.join(__dirname, '..', '..', 'public', 'uploads', 'kyc', fileName);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (err) {
+          // non-fatal: log and continue
+          console.warn('Failed to delete old file:', err?.message || err);
+        }
+      };
+
+      const baseUrl = process.env.SERVER_BASE_URL?.replace(/\/$/, '') || '';
+
+      // If new files provided, upload and replace fields (and remove old files)
+      if (files) {
+        if (files.aadhaarFront?.[0]) {
+          const newName = fileUpload('kyc', files.aadhaarFront[0]);
+          deleteOldFile(kyc.aadhaarFrontDoc);
+          updates.aadhaarFrontDoc = `${baseUrl}/uploads/kyc/${newName}`;
+        }
+        if (files.aadhaarBack?.[0]) {
+          const newName = fileUpload('kyc', files.aadhaarBack[0]);
+          deleteOldFile(kyc.aadhaarBackDoc);
+          updates.aadhaarBackDoc = `${baseUrl}/uploads/kyc/${newName}`;
+        }
+        if (files.panFront?.[0]) {
+          const newName = fileUpload('kyc', files.panFront[0]);
+          deleteOldFile(kyc.panFrontDoc);
+          updates.panFrontDoc = `${baseUrl}/uploads/kyc/${newName}`;
+        }
+        if (files.panBack?.[0]) {
+          const newName = fileUpload('kyc', files.panBack[0]);
+          deleteOldFile(kyc.panBackDoc);
+          updates.panBackDoc = `${baseUrl}/uploads/kyc/${newName}`;
+        }
+      }
+
+      // If nothing to update:
+      if (Object.keys(updates).length === 0) {
+        return new CustomResponse(200, 'No changes provided', kyc);
+      }
+
+      const updated = await this.kycModel.findOneAndUpdate(
+        { userId },
+        { $set: updates },
+        { new: true, runValidators: true },
+      );
+
+      return new CustomResponse(200, 'KYC updated successfully', updated);
     } catch (e) {
-      throw new CustomError(500, 'Failed to update KYC status');
+      if (e instanceof CustomError) throw e;
+      throw new CustomError(500, e?.message || 'Failed to update KYC status');
     }
   }
 }

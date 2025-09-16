@@ -12,7 +12,7 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   // Admin can create any user (including admin)
-  @Roles('admin')
+  @Roles('admin','user')
   @Post()
   create(@Body() dto: CreateUserDto) {
     return this.users.create(dto);
@@ -20,7 +20,7 @@ export class UsersController {
 
   // Admin: list all users
   @Get()
-  @Roles('admin')
+  @Roles('admin', 'user')
   findAll() {
     return this.users.findAll();
   }
@@ -34,13 +34,13 @@ export class UsersController {
 
   // Admin: update any user; User: can be implemented via /me in auth controller
   @Patch(':id')
-  @Roles('admin')
+  @Roles('admin','user')
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.users.update(id, dto);
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('admin','user')
   remove(@Param('id') id: string) {
     return this.users.remove(id);
   }

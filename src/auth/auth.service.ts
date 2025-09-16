@@ -46,7 +46,7 @@ export class AuthService {
     console.log('role',role);
    
     const created = await this.users.create({ ...dto, role });
-    const user = await this.users.findByEmail(created.email);
+    const user = await this.users.findByEmail(dto.email);
 
 
     const tokens = await this.signTokens(user as any);

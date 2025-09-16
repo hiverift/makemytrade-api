@@ -7,6 +7,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
+import { throwException } from 'src/util/errorhandling';
 
 @Injectable()
 export class UsersService {
@@ -20,7 +21,8 @@ export class UsersService {
 
   async create(dto: CreateUserDto) {
     try {
-  
+      const userExit= await this.userModel.findOne({mobile: dto.mobile}).lean();
+      if(userExit)   throw new CustomError(401,'User Already Exits');
       const passwordHash = await this.hash(dto.password);
       const user = new this.userModel({
         email: dto.email,
@@ -29,14 +31,13 @@ export class UsersService {
         mobile:dto.mobile,
         role: dto.role ?? 'user',
       });
-      await user.save();
-      const plain = user.toObject();
+      const user1= await user.save();
+      const plain = user1.toObject();
       delete (plain as any).passwordHash;
       delete (plain as any).refreshTokenHash;
-      return plain;
+      return  new CustomResponse(200,'Create User Successfully',plain)
     } catch (e) {
-      if (e instanceof ConflictException) throw e;
-      throw new InternalServerErrorException('Failed to create user');
+      throwException(e)
     }
   }
 

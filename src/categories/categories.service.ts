@@ -15,7 +15,7 @@ export class CategoriesService {
   constructor(
     @InjectModel(Category.name) private categoryModel: Model<Category>,
     @InjectModel(SubCategory.name) private subCategoryModel: Model<SubCategory>,
-  ) {}
+  ) { }
 
   async createCategory(dto: CreateCategoryDto) {
     try {
@@ -64,6 +64,16 @@ export class CategoriesService {
       }
       const subs = await this.subCategoryModel.find({ categoryId }).lean();
       return new CustomResponse(200, 'SubCategories fetched successfully', subs);
+    } catch (e) {
+      return new CustomError(500, 'Failed to fetch subcategories');
+    }
+  }
+
+  async getAllSubcategory() {
+    try {
+
+      const subs = await this.subCategoryModel.find().lean();
+      return new CustomResponse(200, 'All SubCategories fetched successfully', subs);
     } catch (e) {
       return new CustomError(500, 'Failed to fetch subcategories');
     }

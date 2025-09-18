@@ -29,11 +29,17 @@ export class CategoriesController {
     return this.service.getSubCategoriesByCategory(categoryId);
   }
 
+  @Get('getAllSubcategory')
+  getAllSubcategory()
+  {
+   return this.service.getAllSubcategory();  
+  }
   @Put('updateCategory/:id')
   updateCategory(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
     return this.service.updateCategory(id, dto);
   }
-
+  
+   
   @Put('updateSubCategory/:id')
   updateSubCategory(@Param('id') id: string, @Body() dto: UpdateSubCategoryDto) {
     return this.service.updateSubCategory(id, dto);

@@ -18,6 +18,9 @@ import { NotificationsModule } from './notificaions/notificaions.module';
 import { DashboardServiceModule } from './dashboard-service/dashboard-service.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { KycModule } from './kyc/kyc.module';
+import { PaymentsModule } from './payment/payment.module';
+import { OrdersModule } from './order/order.module';
+
 
 @Module({
   imports: [
@@ -39,7 +42,8 @@ import { KycModule } from './kyc/kyc.module';
     NotificationsModule,
     DashboardServiceModule,
     TransactionModule,
-    KycModule
+    KycModule,
+    OrdersModule
   ],
 })
 export class AppModule {}

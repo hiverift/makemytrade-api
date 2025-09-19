@@ -78,8 +78,13 @@ export class OrdersService {
       if (pricePaise == null) throw new CustomError(404, 'Requested item not found');
       console.log('check price from courses', pricePaise)
       // Check optional client-provided amount
-      console.log(dto.amount, 'amount')
-      if (dto.amount && dto.amount !== pricePaise) {
+      const opts: any = {};
+    if (dto.amount != null) {
+      opts.amount = Math.round(dto.amount * 100); // rupee → paise
+    }
+   
+    //  const finalprice= Math.round(dto.amount * 100);
+      if (opts.amount !== pricePaise) {
         throw new CustomError(400, 'Amount mismatch');
       }
 
@@ -272,7 +277,7 @@ export class OrdersService {
         if (!course) return null;
         const rupees = (course.result.price ?? 0) as number;
         console.log('Math.round(rupees * 100)', Math.round(rupees * 100))
-        return rupees ;
+        return Math.round(rupees * 100) ;
       }
 
       if (webinarId) {
@@ -280,7 +285,7 @@ export class OrdersService {
         const webinar = this.extractEntity(raw);
         if (!webinar) return null;
         const rupees = (webinar.result.price ?? 0) as number;
-        return rupees;
+        return Math.round(rupees * 100);
       }
 
       // if (appointmentId) {

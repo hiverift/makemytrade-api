@@ -1,5 +1,6 @@
 // src/order/entities/order.entity.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { IsOptional } from 'class-validator';
 import { Document, Types } from 'mongoose';
 
 export type OrderDocument = Order & Document;
@@ -45,6 +46,12 @@ export const PaymentInfoSchema = SchemaFactory.createForClass(PaymentInfo);
 export class Order {
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   user?: Types.ObjectId;
+
+  @Prop({required:false})
+  userId?:string;
+
+  @Prop({ type: String, required: false, unique: true, sparse: true })
+  orderId?: string;
 
   @Prop({ type: String, required: false })
   courseId?: string;

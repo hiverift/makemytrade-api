@@ -4,7 +4,8 @@ import { Model, Types } from 'mongoose';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
-
+import { customAlphabet } from 'nanoid';
+const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10);
 import { Order, OrderDocument, OrderStatus } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateRazorpayOrderDto } from './dto/create-razorpay-order.dto';
@@ -55,7 +56,7 @@ export class OrdersService {
   }
 
   /** Create order — validate item exists and compute server-side price (paise) */
-  async createOrder(dto: CreateOrderDto, userId?: string): Promise<CustomResponse> {
+  async createOrder(dto: CreateOrderDto): Promise<CustomResponse> {
     try {
       // Determine which ID provided
       const { courseId, webinarId, appointmentId, itemType } = dto;
@@ -75,15 +76,18 @@ export class OrdersService {
       // Resolve price
       const pricePaise = await this.resolvePriceByIds({ courseId, webinarId, appointmentId, resolvedType });
       if (pricePaise == null) throw new CustomError(404, 'Requested item not found');
-       console.log('check price from courses',pricePaise)
+      console.log('check price from courses', pricePaise)
       // Check optional client-provided amount
-      console.log(dto.amount,'amount')
+      console.log(dto.amount, 'amount')
       if (dto.amount && dto.amount !== pricePaise) {
         throw new CustomError(400, 'Amount mismatch');
       }
-      
+
+      const orderRef = `ORD-${nanoid()}`;
+      console.log('userid ',dto.userId)
       const order = new this.orderModel({
-        user: userId ? new Types.ObjectId(userId) : undefined,
+        orderId: orderRef,                  // <--- new line
+        userId: dto.userId ? new Types.ObjectId(dto.userId) : undefined,
         courseId: courseId || undefined,
         webinarId: webinarId || undefined,
         appointmentId: appointmentId || undefined,
@@ -106,7 +110,9 @@ export class OrdersService {
   /** Create Razorpay order and attach to DB order */
   async createRazorpayOrder(orderId: string, dto: CreateRazorpayOrderDto): Promise<CustomResponse> {
     try {
-      const order = await this.orderModel.findById(orderId).exec();
+      console.log('hiii order id ', orderId)
+      const order = await this.orderModel.findOne({orderId:orderId}).lean();
+      console.log('order',order)
       if (!order) throw new CustomError(404, 'Order not found');
 
       const amount = order.amount; // use DB amount
@@ -134,7 +140,8 @@ export class OrdersService {
         notes: (rOrder as any).notes,
       };
       order.status = OrderStatus.PENDING_PAYMENT;
-      await order.save();
+    const doc = this.orderModel.hydrate(order);
+     await doc.save();
 
       return new CustomResponse(200, 'Razorpay order created', { rOrder, orderId: order._id });
     } catch (err) {
@@ -151,7 +158,6 @@ export class OrdersService {
       .createHmac('sha256', key_secret)
       .update(`${payload.razorpay_order_id}|${payload.razorpay_payment_id}`)
       .digest('hex');
-
     return generated_signature === payload.razorpay_signature;
   }
 
@@ -264,16 +270,17 @@ export class OrdersService {
         const raw = await this.coursesService.findById(courseId);
         const course = this.extractEntity(raw);
         if (!course) return null;
-        const rupees = (course.price ?? 0) as number;
-        return Math.round(rupees * 100);
+        const rupees = (course.result.price ?? 0) as number;
+        console.log('Math.round(rupees * 100)', Math.round(rupees * 100))
+        return rupees ;
       }
 
       if (webinarId) {
         const raw = await this.webinarsService.findById(webinarId);
         const webinar = this.extractEntity(raw);
         if (!webinar) return null;
-        const rupees = (webinar.price ?? 0) as number;
-        return Math.round(rupees * 100);
+        const rupees = (webinar.result.price ?? 0) as number;
+        return rupees;
       }
 
       // if (appointmentId) {
@@ -324,17 +331,16 @@ export class OrdersService {
   }
 
   /** read helpers */
-  async findById(orderId: string): Promise<CustomResponse> {
-    try {
-      const order = await this.orderModel.findById(orderId).exec();
-      if (!order) throw new CustomError(404, 'Order not found');
-      return new CustomResponse(200, 'Order fetched', { order });
-    } catch (err) {
-      if (err instanceof CustomError) throw err;
-      throw new CustomError(500, 'Failed to fetch order');
-    }
+ async findById(orderId: string): Promise<CustomResponse> {
+  try {
+    const order = await this.findOrderByIdOrRef(orderId);
+    if (!order) throw new CustomError(404, 'Order not found');
+    return new CustomResponse(200, 'Order fetched', { order });
+  } catch (err) {
+    if (err instanceof CustomError) throw err;
+    throw new CustomError(500, 'Failed to fetch order');
   }
-
+}
   async list(limit = 20, skip = 0): Promise<CustomResponse> {
     try {
       const orders = await this.orderModel.find().sort({ createdAt: -1 }).limit(limit).skip(skip).exec();
@@ -370,6 +376,7 @@ export class OrdersService {
   /** Get orders by webinarId */
   async findByWebinar(webinarId: string, limit = 20, skip = 0): Promise<CustomResponse> {
     try {
+      console.log('web',webinarId)
       const orders = await this.orderModel.find({ webinarId }).sort({ createdAt: -1 }).limit(limit).skip(skip).exec();
       return new CustomResponse(200, 'Orders fetched for webinar', { orders });
     } catch (err) {
@@ -382,6 +389,11 @@ export class OrdersService {
   async findByAppointment(appointmentId: string, limit = 20, skip = 0): Promise<CustomResponse> {
     try {
       const orders = await this.orderModel.find({ appointmentId }).sort({ createdAt: -1 }).limit(limit).skip(skip).exec();
+      console.log(orders,'orders')
+      if(!orders)
+      {
+        throw new CustomError(401,'Not found Order For this Id')
+      }
       return new CustomResponse(200, 'Orders fetched for appointment', { orders });
     } catch (err) {
       this.logger.error('findByAppointment error', err);
@@ -503,4 +515,16 @@ export class OrdersService {
       throw new CustomError(500, 'Failed to refund payment');
     }
   }
+  private async findOrderByIdOrRef(idOrRef: string) {
+  if (!idOrRef) return null;
+  // valid ObjectId -> treat as _id
+  if (Types.ObjectId.isValid(idOrRef)) {
+    // sometimes a 12-char string also passes; still okay
+    const byId = await this.orderModel.findById(idOrRef).exec();
+    if (byId) return byId;
+    // fallback to search by orderId too (in case an ORD-... also looks like valid ObjectId)
+  }
+  // otherwise search by orderId field
+  return await this.orderModel.findOne({ orderId: idOrRef }).exec();
+}
 }

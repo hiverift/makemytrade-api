@@ -13,7 +13,7 @@ export class OrdersController {
   @Post()
   async create(@Body() dto: CreateOrderDto, @Req() req: any) {
     const userId = req?.user?.id;
-    return await this.ordersService.createOrder(dto, userId);
+    return await this.ordersService.createOrder(dto);
   }
 
   @Post(':id/pay')

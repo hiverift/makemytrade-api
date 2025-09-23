@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import * as dotenv from 'dotenv';
 import helmet from 'helmet';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   try {
@@ -21,6 +22,16 @@ async function bootstrap() {
 
     app.set('trust proxy', 1);
     app.use(helmet());
+    
+   app.use(
+  bodyParser.json({
+    verify: (req: any, _res, buf: Buffer) => {
+      if (req.originalUrl && req.originalUrl.includes('/api/v1/payments/webhook')) {
+        req.rawBody = buf;
+      }
+    },
+  }),
+);
 
     // Read allowed origins from env (comma-separated). Fallback to sensible defaults.
     const envOrigins = (process.env.ALLOWED_ORIGINS ?? '').trim();

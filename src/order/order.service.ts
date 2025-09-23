@@ -183,7 +183,7 @@ export class OrdersService {
         order.status = OrderStatus.FAILED;
         await order.save();
         throw new CustomError(400, 'Invalid payment signature');
-      }
+      } 
 
       // Fetch payment from Razorpay to get final status and captured amount
       let paymentEntity: any = null;
@@ -220,8 +220,11 @@ export class OrdersService {
 
   /** Webhook signature verification */
   verifyWebhookSignature(body: string, signature: string): boolean {
+    console.log( 'scret',this.configService.get('RAZORPAY_WEBHOOK_SECRET'))
     const webhookSecret = this.configService.get('RAZORPAY_WEBHOOK_SECRET') || '';
+    console.log(webhookSecret)
     const expected = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
+     console.log('hiii',expected)
     return expected === signature;
   }
 

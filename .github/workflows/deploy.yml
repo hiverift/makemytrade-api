@@ -1,0 +1,28 @@
+name: Deploy API (password-based)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to server using password
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          script: |
+            cd ~/makemytrade-api || { git clone https://github.com/hiverift/makemytrade-api.git ~/makemytrade-api && cd ~/makemytrade-api; }
+            git fetch --all
+            git reset --hard origin/main
+            npm ci
+            npm run build
+            pm2 restart makemytrade-api || pm2 start dist/main.js --name makemytrade-api
+            pm2 save

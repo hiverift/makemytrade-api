@@ -20,7 +20,7 @@ import { TransactionModule } from './transaction/transaction.module';
 import { KycModule } from './kyc/kyc.module';
 import { PaymentsModule } from './payment/payment.module';
 import { OrdersModule } from './order/order.module';
-
+import { YoutubeModule } from './youtube-tutorial/youtube.module';
 
 @Module({
   imports: [
@@ -43,7 +43,8 @@ import { OrdersModule } from './order/order.module';
     DashboardServiceModule,
     TransactionModule,
     KycModule,
-    OrdersModule
+    OrdersModule,
+    YoutubeModule
   ],
 })
 export class AppModule {}

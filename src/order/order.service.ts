@@ -58,6 +58,7 @@ export class OrdersService {
   /** Create order — validate item exists and compute server-side price (paise) */
   async createOrder(dto: CreateOrderDto): Promise<CustomResponse> {
     try {
+    
       // Determine which ID provided
       const { courseId, webinarId, appointmentId, itemType } = dto;
 
@@ -290,15 +291,14 @@ export class OrdersService {
         const rupees = (webinar.result.price ?? 0) as number;
         return Math.round(rupees * 100);
       }
-
-      // if (appointmentId) {
-      //   const raw = await this.appointmentsService.findById(appointmentId);
-      //   const appointment = this.extractEntity(raw);
-      //   if (!appointment) return null;
-      //   const rupees = (appointment.fee ?? appointment.price ?? 0) as number;
-      //   return Math.round(rupees * 100);
-      // }
-
+      if (appointmentId) {
+        const raw = await this.appointmentsService.findById(appointmentId);
+        const appointment = this.extractEntity(raw);
+        if (!appointment) return null;
+        const rupees = (appointment.result.amount ?? appointment.result.amount ?? 0) as number;
+        return Math.round(rupees * 100);
+      }
+      
       // fallback: use resolvedType with IDs not given (shouldn't occur)
       if (resolvedType === 'course' && courseId) return this.resolvePriceByIds({ courseId });
       if (resolvedType === 'webinar' && webinarId) return this.resolvePriceByIds({ webinarId });

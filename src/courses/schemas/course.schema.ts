@@ -40,6 +40,9 @@ export class Course extends Document {
   @Prop({ required: true })
   itemType: string;
 
+  @Prop({ required: true })
+  youtubeVideoId: string;
+
   // @Prop({ type: Types.ObjectId, ref: 'SubCategory' })
   // subCategoryId: Types.ObjectId;
 }

@@ -39,6 +39,9 @@ export class CreateCourseDto {
   @IsString()
   itemType: string;
 
+  @IsString()
+  youtubeVideoId:string;
+
   // @IsOptional()
   // @IsMongoId()
   // subCategoryId?: string;

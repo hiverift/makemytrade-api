@@ -74,4 +74,7 @@ export class CreateWebinarDto {
 
   @IsString()
   itemType: string;
+
+  @IsString()
+  youtubeVideoId:string;
 }

@@ -67,6 +67,9 @@ export class Webinar extends Document {
 
   @Prop({required:true})
   itemType:string;
+
+  @Prop({required:true})
+  youtubeVideoId:string;
 }
 
 export const WebinarSchema = SchemaFactory.createForClass(Webinar);

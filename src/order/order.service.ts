@@ -293,6 +293,7 @@ export class OrdersService {
       }
       if (appointmentId) {
         const raw = await this.appointmentsService.findById(appointmentId);
+        console.log('raw',raw)
         const appointment = this.extractEntity(raw);
         if (!appointment) return null;
         const rupees = (appointment.result.amount ?? appointment.result.amount ?? 0) as number;

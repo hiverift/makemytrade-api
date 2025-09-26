@@ -27,8 +27,8 @@ export class Webinar extends Document {
   price: number;
 
   // status: upcoming | live | recorded
-  @Prop({ type: String, enum: ['upcoming', 'live', 'recorded'], default: 'upcoming' })
-  status: 'upcoming' | 'live' | 'recorded';
+  @Prop({ type: String, enum: ['Upcoming', 'Live', 'Recorded'], default: 'Upcoming' })
+  status: 'Upcoming' | 'Live' | 'Recorded';
 
   @Prop({ default: 0 })
   views: number;
@@ -55,15 +55,18 @@ export class Webinar extends Document {
   @Prop({ type: [String], default: [] })
   agenda: string[];
 
-  @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
-  categoryId: Types.ObjectId;
+  // @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
+  // categoryId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'SubCategory' })
-  subCategoryId: Types.ObjectId;
+  // @Prop({ type: Types.ObjectId, ref: 'SubCategory' })
+  // subCategoryId: Types.ObjectId;
 
   // attendees: store user ids (optional)
   @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
   attendees: Types.ObjectId[];
+
+  @Prop({required:true})
+  itemType:string;
 }
 
 export const WebinarSchema = SchemaFactory.createForClass(Webinar);

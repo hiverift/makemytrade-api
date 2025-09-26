@@ -1,5 +1,6 @@
 import {
-  Controller, Post, UseInterceptors, UploadedFile, Body, Get, Param, Put, Delete, Patch,
+  Controller, Post, UseInterceptors, UploadedFile, Body, Get, Param, Put, Delete,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { WebinarsService } from './webinar.service';
@@ -8,15 +9,18 @@ import { UpdateWebinarDto } from './dto/update-webinar.dto';
 
 @Controller('webinars')
 export class WebinarController {
-  constructor(private readonly service: WebinarsService) {}
+  constructor(private readonly service: WebinarsService) { }
 
   @Post()
   @UseInterceptors(FileInterceptor('thumbnail'))
   create(@UploadedFile() thumbnail: Express.Multer.File, @Body() dto: CreateWebinarDto) {
-    console.log('hidinei ',thumbnail)
+    console.log('thumbnail from controller', thumbnail);
     return this.service.create(dto, thumbnail);
   }
-
+  @Get('filter')
+  async filter(@Query() query: any) {
+    return this.service.filterWebinars(query);
+  }
   @Get()
   findAll() {
     return this.service.findAll();
@@ -28,19 +32,11 @@ export class WebinarController {
   }
 
   @Get('status/:status')
-  findByStatus(@Param('status') status: 'upcoming' | 'live' | 'recorded') {
+  findByStatus(@Param('status') status: 'Upcoming' | 'Live' | 'Recorded') {
     return this.service.findByStatus(status);
   }
 
-  @Get('category/:id')
-  findByCategory(@Param('id') id: string) {
-    return this.service.findByCategory(id);
-  }
-
-  @Get('subcategory/:id')
-  findBySubCategory(@Param('id') id: string) {
-    return this.service.findBySubCategory(id);
-  }
+  // Removed category/subcategory-specific routes per request
 
   @Put(':id')
   @UseInterceptors(FileInterceptor('thumbnail'))
@@ -64,4 +60,5 @@ export class WebinarController {
   getLive(@Param('id') id: string) {
     return this.service.getLiveDetails(id);
   }
+
 }

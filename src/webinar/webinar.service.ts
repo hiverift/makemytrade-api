@@ -6,55 +6,33 @@ import { CreateWebinarDto } from './dto/create-webinar.dto';
 import { UpdateWebinarDto } from './dto/update-webinar.dto';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
-import { Category } from 'src/categories/schemas/category.schema';
-import { SubCategory } from 'src/categories/schemas/subcategory.schema';
 import { fileUpload } from 'src/util/fileupload';
 
 @Injectable()
 export class WebinarsService {
   constructor(
     @InjectModel(Webinar.name) private webinarModel: Model<Webinar>,
-    @InjectModel(Category.name) private categoryModel: Model<Category>,
-    @InjectModel(SubCategory.name) private subCategoryModel: Model<SubCategory>,
-  ) {}
+  ) { }
 
   private buildThumbUrl(filename?: string) {
     if (!filename) return null;
     const base = process.env.SERVER_BASE_URL?.replace(/\/$/, '') ?? '';
-    return `${base}/uploads/courseImage/${filename}`; // reuse same folder
+    return `${base}/uploads/webinar/${filename}`;
   }
 
   async create(dto: CreateWebinarDto, thumbnail?: Express.Multer.File) {
     try {
-      if (!Types.ObjectId.isValid(dto.categoryId)) return new CustomError(400, 'Invalid category ID');
-      const cat = await this.categoryModel.findById(dto.categoryId);
-      if (!cat) return new CustomError(404, 'Category not found');
+      const uploadedFileName = thumbnail ? fileUpload('webniar', thumbnail) : null;
+      console.log('uploadedFileName:', uploadedFileName);
 
-      if (dto.subCategoryId) {
-        if (!Types.ObjectId.isValid(dto.subCategoryId)) return new CustomError(400, 'Invalid subCategory ID');
-        const sub = await this.subCategoryModel.findById(dto.subCategoryId);
-        if (!sub) return new CustomError(404, 'SubCategory not found');
-        if (String(sub.categoryId) !== String(dto.categoryId)) return new CustomError(400, 'SubCategory does not belong to Category');
-      }
-
-
-      
-       const uploadedFileName = thumbnail
-                ? fileUpload('webniar', thumbnail)
-                : null;
-            console.log(uploadedFileName);
-      
       const doc: any = {
         ...dto,
-        thumbnail:uploadedFileName
-                    ? `${process.env.SERVER_BASE_URL}uploads/webinar/${uploadedFileName}`
-                    : thumbnail,
-        categoryId: new Types.ObjectId(dto.categoryId),
-        subCategoryId: dto.subCategoryId ? new Types.ObjectId(dto.subCategoryId) : undefined,
+        thumbnail: uploadedFileName
+          ? `${process.env.SERVER_BASE_URL}uploads/webinar/${uploadedFileName}`
+          : thumbnail,
       };
 
-      
-
+      // keep DTO fields as-is (no category/subcategory validation)
       const webinar = new this.webinarModel(doc);
       await webinar.save();
       return new CustomResponse(201, 'Webinar created successfully', webinar);
@@ -66,9 +44,10 @@ export class WebinarsService {
 
   async findAll() {
     try {
-      const items = await this.webinarModel.find().populate('categoryId').populate('subCategoryId').lean();
+      const items = await this.webinarModel.find().lean();
       return new CustomResponse(200, 'Webinars fetched successfully', items);
     } catch (e) {
+      console.error('Webinar findAll error:', e);
       return new CustomError(500, 'Failed to fetch webinars');
     }
   }
@@ -76,86 +55,41 @@ export class WebinarsService {
   async findById(id: string) {
     try {
       if (!Types.ObjectId.isValid(id)) return new CustomError(400, 'Invalid webinar ID');
-      const item = await this.webinarModel.findById(id).populate('categoryId').populate('subCategoryId');
+      const item = await this.webinarModel.findById(id);
       if (!item) return new CustomError(404, 'Webinar not found');
       return new CustomResponse(200, 'Webinar fetched successfully', item);
     } catch (e) {
+      console.error('Webinar findById error:', e);
       return new CustomError(500, 'Failed to fetch webinar');
     }
   }
 
-  async findByStatus(status: 'upcoming' | 'live' | 'recorded') {
+  async findByStatus(status: 'Upcoming' | 'Live' | 'Recorded') {
     try {
-      const items = await this.webinarModel.find({ status }).populate('categoryId').populate('subCategoryId').lean();
+      const items = await this.webinarModel.find({ status }).lean();
       return new CustomResponse(200, `Webinars (${status}) fetched`, items);
     } catch (e) {
+      console.error('Webinar findByStatus error:', e);
       return new CustomError(500, 'Failed to fetch webinars');
     }
   }
 
-  async findByCategory(categoryId: string) {
-    try {
-      if (!Types.ObjectId.isValid(categoryId)) return new CustomError(400, 'Invalid category ID');
-      const cat = await this.categoryModel.findById(categoryId);
-      if (!cat) return new CustomError(404, 'Category not found');
-      const items = await this.webinarModel.find({ categoryId }).populate('subCategoryId').lean();
-      return new CustomResponse(200, 'Webinars by category fetched', items);
-    } catch (e) {
-      return new CustomError(500, 'Failed to fetch webinars by category');
-    }
-  }
-
-  async findBySubCategory(subCategoryId: string) {
-    try {
-      if (!Types.ObjectId.isValid(subCategoryId)) return new CustomError(400, 'Invalid subCategory ID');
-      const sub = await this.subCategoryModel.findById(subCategoryId);
-      if (!sub) return new CustomError(404, 'SubCategory not found');
-      const items = await this.webinarModel.find({ subCategoryId }).populate('categoryId').lean();
-      return new CustomResponse(200, 'Webinars by subCategory fetched', items);
-    } catch (e) {
-      return new CustomError(500, 'Failed to fetch webinars by subCategory');
-    }
-  }
+  // removed findByCategory / findBySubCategory (no category validations)
 
   async update(id: string, dto: UpdateWebinarDto, thumbnail?: Express.Multer.File) {
     try {
       if (!Types.ObjectId.isValid(id)) return new CustomError(400, 'Invalid webinar ID');
 
-      if (dto.categoryId) {
-        if (!Types.ObjectId.isValid(dto.categoryId)) return new CustomError(400, 'Invalid category ID');
-        const c = await this.categoryModel.findById(dto.categoryId);
-        if (!c) return new CustomError(404, 'Category not found');
-      }
-      if (dto.subCategoryId) {
-        if (!Types.ObjectId.isValid(dto.subCategoryId)) return new CustomError(400, 'Invalid subCategory ID');
-        const s = await this.subCategoryModel.findById(dto.subCategoryId);
-        if (!s) return new CustomError(404, 'SubCategory not found');
-      }
+      const uploadedFileName = thumbnail ? fileUpload('webniar', thumbnail) : null;
+      console.log('uploadedFileName:', uploadedFileName);
 
-
-
-       const uploadedFileName = thumbnail
-                ? fileUpload('webniar', thumbnail)
-                : null;
-            console.log(uploadedFileName);
-      
       const doc: any = {
         ...dto,
-        thumbnail:uploadedFileName
-                    ? `${process.env.SERVER_BASE_URL}uploads/webinar/${uploadedFileName}`
-                    : thumbnail,
-        categoryId: new Types.ObjectId(dto.categoryId),
-        subCategoryId: dto.subCategoryId ? new Types.ObjectId(dto.subCategoryId) : undefined,
       };
-      if (dto.categoryId) doc.categoryId = new Types.ObjectId(dto.categoryId);
-      if (dto.subCategoryId) doc.subCategoryId = new Types.ObjectId(dto.subCategoryId);
 
-  
-      
-       
-    
-       
-      
+      if (uploadedFileName) {
+        doc.thumbnail = `${process.env.SERVER_BASE_URL}uploads/webinar/${uploadedFileName}`;
+      }
 
       const webinar = await this.webinarModel.findByIdAndUpdate(id, doc, { new: true });
       if (!webinar) return new CustomError(404, 'Webinar not found');
@@ -173,11 +107,11 @@ export class WebinarsService {
       if (!res) return new CustomError(404, 'Webinar not found');
       return new CustomResponse(200, 'Webinar deleted successfully', { deleted: true });
     } catch (e) {
+      console.error('Webinar remove error:', e);
       return new CustomError(500, 'Failed to delete webinar');
     }
   }
 
-  // register a user (attend) — userId should be validated by caller (or pass via CurrentUser)
   async registerAttendee(webinarId: string, userId: string) {
     try {
       if (!Types.ObjectId.isValid(webinarId) || !Types.ObjectId.isValid(userId)) return new CustomError(400, 'Invalid IDs');
@@ -200,16 +134,111 @@ export class WebinarsService {
     }
   }
 
-  // return live stream url (if authorized)
   async getLiveDetails(webinarId: string) {
     try {
       if (!Types.ObjectId.isValid(webinarId)) return new CustomError(400, 'Invalid webinar ID');
       const w = await this.webinarModel.findById(webinarId).select('streamUrl status');
       if (!w) return new CustomError(404, 'Webinar not found');
-      if (w.status !== 'live') return new CustomError(400, 'Webinar not live currently');
+      if (w.status !== 'Live') return new CustomError(400, 'Webinar not live currently');
       return new CustomResponse(200, 'Live details', { streamUrl: w.streamUrl });
     } catch (e) {
+      console.error('Get live details error:', e);
       return new CustomError(500, 'Failed to get live details');
     }
   }
+
+  // add inside WebinarsService class
+
+  /**
+   * Generic filter for webinars.
+   * Supported query params:
+   * - title (partial, case-insensitive)
+   * - presenter (partial, case-insensitive)
+   * - status (upcoming|live|recorded)
+   * - minPrice, maxPrice (numbers)
+   * - startDateFrom, startDateTo (ISO date strings)
+   * - page, limit (pagination)
+   */
+  async filterWebinars(query: any) {
+    try {
+      const filter: any = {};
+
+      // text searches (partial, case-insensitive)
+      if (query.title) {
+        filter.title = { $regex: String(query.title), $options: 'i' };
+      }
+      if (query.presenter) {
+        filter.presenter = { $regex: String(query.presenter), $options: 'i' };
+      }
+
+      // exact value
+      if (query.status) {
+        // validate allowed statuses optionally
+        const allowed = ['Upcoming', 'Live', 'Recorded'];
+        if (allowed.includes(String(query.status))) {
+          filter.status = String(query.status);
+        }
+      }
+
+      // price range
+      if (query.minPrice || query.maxPrice) {
+        filter.price = {};
+        if (query.minPrice && !Number.isNaN(Number(query.minPrice))) {
+          filter.price.$gte = Number(query.minPrice);
+        }
+        if (query.maxPrice && !Number.isNaN(Number(query.maxPrice))) {
+          filter.price.$lte = Number(query.maxPrice);
+        }
+        // if price ended empty, delete
+        if (Object.keys(filter.price).length === 0) delete filter.price;
+      }
+
+      // startDate range
+      if (query.startDateFrom || query.startDateTo) {
+        filter.startDate = {};
+        if (query.startDateFrom && !Number.isNaN(Date.parse(query.startDateFrom))) {
+          filter.startDate.$gte = new Date(query.startDateFrom);
+        }
+        if (query.startDateTo && !Number.isNaN(Date.parse(query.startDateTo))) {
+          filter.startDate.$lte = new Date(query.startDateTo);
+        }
+        if (Object.keys(filter.startDate).length === 0) delete filter.startDate;
+      }
+
+      // pagination
+      const page = Math.max(1, Number(query.page) || 1);
+      const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+      const skip = (page - 1) * limit;
+
+      // optional sort
+      // default: newest first
+      const sort: any = { createdAt: -1 };
+      if (query.sortBy) {
+        // example: sortBy=price:asc  or sortBy=startDate:desc
+        const [field, dir] = String(query.sortBy).split(':');
+        if (field) sort[field] = dir === 'asc' ? 1 : -1;
+      }
+
+      const [items, total] = await Promise.all([
+        this.webinarModel.find(filter).sort(sort).skip(skip).limit(limit).lean(),
+        this.webinarModel.countDocuments(filter),
+      ]);
+
+      const result = {
+        items,
+        meta: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        },
+      };
+
+      return new CustomResponse(200, 'Filtered webinars fetched successfully', result);
+    } catch (e) {
+      console.error('Webinar filter error:', e);
+      return new CustomError(500, 'Failed to filter webinars');
+    }
+  }
+
 }

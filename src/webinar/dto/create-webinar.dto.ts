@@ -1,5 +1,5 @@
 import {
-  IsString, IsNotEmpty, IsOptional,IsDateString, IsNumber, IsArray, ArrayNotEmpty, IsMongoId, Min
+  IsString, IsNotEmpty, IsOptional, IsDateString, IsNumber, IsArray, ArrayNotEmpty, IsMongoId, Min
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
@@ -28,9 +28,9 @@ export class CreateWebinarDto {
 
   @IsOptional()
   @IsString()
-  status?: 'upcoming' | 'live' | 'recorded';
+  status?: 'Upcoming' | 'Live' | 'Recorded';
 
- @IsOptional()
+  @IsOptional()
   @Transform(({ value }) => {
     if (!value) return undefined;
     // अगर value "2025-09-10 12:10" जैसे आया है
@@ -42,7 +42,7 @@ export class CreateWebinarDto {
   @Type(() => Date)
   startDate?: Date;
 
- @Transform(({ value }) => {
+  @Transform(({ value }) => {
     if (!value) return [];
     try {
       return JSON.parse(value);  // 👉 "['Intro','Strategy']" को array में बदलेगा
@@ -56,19 +56,22 @@ export class CreateWebinarDto {
   agenda: string[];
 
 
-  @IsMongoId()
-  categoryId: string;
+  // @IsMongoId()
+  // categoryId: string;
 
-  @IsOptional()
-  @IsMongoId()
-  subCategoryId?: string;
+  // @IsOptional()
+  // @IsMongoId()
+  // subCategoryId?: string;
 
   @IsOptional()
   @IsString()
   videoUrl?: string;
-  
+
 
   @IsOptional()
   @IsString()
   streamUrl?: string;
+
+  @IsString()
+  itemType: string;
 }

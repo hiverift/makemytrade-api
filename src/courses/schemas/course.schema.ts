@@ -37,11 +37,11 @@ export class Course extends Document {
   image: string;
 
 
-  @Prop({ type: Types.ObjectId, ref: 'Category' })
-  categoryId: Types.ObjectId;
+  @Prop({ required: true })
+  itemType: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'SubCategory' })
-  subCategoryId: Types.ObjectId;
+  // @Prop({ type: Types.ObjectId, ref: 'SubCategory' })
+  // subCategoryId: Types.ObjectId;
 }
 
 export const CourseSchema = SchemaFactory.createForClass(Course);

@@ -345,7 +345,7 @@ export class BookingsService {
   async findById(id: string) {
 
     try {
-
+       console.log('id',id)
       const subs = await this.bookingModel.findById(id);
       return new CustomResponse(200, 'All appoinment fetched successfully', subs);
     } catch (e) {

@@ -1,8 +1,8 @@
-import { IsString, IsNotEmpty, IsMongoId,IsNumber, IsOptional,ArrayNotEmpty, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsMongoId, IsNumber, IsOptional, ArrayNotEmpty, IsArray } from 'class-validator';
 
 export class CreateCourseDto {
 
-    
+
   @IsString() @IsNotEmpty()
   title: string;
 
@@ -33,13 +33,13 @@ export class CreateCourseDto {
   @IsOptional()
   studentsCount?: number;
 
-@IsOptional()
+  @IsOptional()
   image: string;
 
-@IsMongoId()
-categoryId: string;
+  @IsString()
+  itemType: string;
 
-@IsOptional()
-@IsMongoId()
-subCategoryId?: string;
+  // @IsOptional()
+  // @IsMongoId()
+  // subCategoryId?: string;
 }

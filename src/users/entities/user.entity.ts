@@ -25,6 +25,11 @@ export class User {
 
   @Prop({ type: String, default: null, select: false })
   refreshTokenHash!: string | null;
+  @Prop({ enum: ['active', 'expired', 'cancelled'], default: 'active' })
+  status: string;
+
+  @Prop({ required: true })
+  expiryDate: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

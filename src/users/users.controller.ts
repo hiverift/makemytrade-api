@@ -44,4 +44,10 @@ export class UsersController {
   remove(@Param('id') id: string) {
     return this.users.remove(id);
   }
+
+@Get(':userId/items-count')
+@Roles('admin','user')
+async getUserItemsCount(@Param('userId') userId: string) {
+  return this.users.getUserItemsCount(userId);
+}
 }

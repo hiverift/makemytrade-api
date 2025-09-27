@@ -8,10 +8,23 @@ import * as bcrypt from 'bcrypt';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
 import { throwException } from 'src/util/errorhandling';
+import { Booking } from 'src/bookings/entities/booking.entity';
+import { Course } from 'src/courses/schemas/course.schema';
+import { Webinar } from 'src/webinar/entities/webinar.entity';
+import { OrderDocument,Order } from 'src/order/entities/order.entity';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    
+    @InjectModel(User.name) private userModel: Model<User>,
+     @InjectModel(Webinar.name) private webinarModel: Model<Webinar>,
+      @InjectModel(Course.name) private courseModel: Model<Course>,
+       @InjectModel(Booking.name) private bookingModel: Model<Booking>,
+       @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+
+
+) {}
 
   // helper
   private async hash(data: string) {
@@ -170,4 +183,26 @@ async findByMobile(mobile: string, includeSecrets = false) {
   if (includeSecrets) q.select('+passwordHash +refreshTokenHash');
   return q;
 }
+
+async getUserItemsCount(userId: string) {
+  try {
+    if (!userId) return new CustomError(400, "User ID required");
+
+    const itemTypes = ["appointment", "course", "webinar"];
+    const counts: Record<string, number> = {};
+
+    await Promise.all(
+      itemTypes.map(async (type) => {
+        const cnt = await this.orderModel.countDocuments({ userId, itemType: type, status: "paid" });
+        counts[type] = cnt;
+      })
+    );
+
+    return new CustomResponse(200, "Paid counts fetched successfully", counts);
+  } catch (e) {
+    console.warn("getUserPaidItemsCount err", e);
+    return new CustomError(500, "Failed to fetch paid counts");
+  }
+}
+
 }

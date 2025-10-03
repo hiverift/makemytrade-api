@@ -62,9 +62,9 @@ export class UsersController {
     return this.users.getUserItemsCount(userId);
   }
 
-  @Get(':userId/purchased-courses')
-  async getPurchasedCourses(@Param('userId') userId: string, @Request() req) {
-   return this.users.getPurchasedCourses(userId);
+  @Get(':userId/:courseId/purchased-courses')
+  async getPurchasedCourses(@Param('userId') userId: string, @Param('courseId') courseId: string, @Request() req) {
+   return this.users.getPurchasedCourses(userId,courseId);
   }
 
   @Put('update-status/:phoneNumber')

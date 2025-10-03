@@ -14,6 +14,7 @@ import { Webinar } from 'src/webinar/entities/webinar.entity';
 import { OrderDocument, Order } from 'src/order/entities/order.entity';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { Logger } from '@nestjs/common';
+import { use } from 'passport';
 
 @Injectable()
 export class UsersService {
@@ -326,10 +327,14 @@ export class UsersService {
 
 
 
-  async getPurchasedCourses(userId: string) {
+  async getPurchasedCourses(userId: string, courseId?: string) {
     try {
 
       if (!userId) throw new CustomError(400, 'userId required');
+      const user = await this.userModel.findById(userId);
+      if (!user) throw new CustomError(404, 'userId not found');
+      const course = await this.courseModel.findById(courseId);
+      if (!course) throw new CustomError(404, 'Course not found');
       // Find all paid orders for the user
       const orders = await this.orderModel
         .find({
@@ -340,15 +345,15 @@ export class UsersService {
 
       // Extract course IDs from orders
       const courseIds = orders
-        .filter(order => order.courseId) // Ensure courseId exists
-        .map(order => order.courseId);
+        .filter(order => courseId) // Ensure courseId exists
+        .map(order => courseId);
 
       // Fetch course details for all course IDs
       const courses = await this.courseModel
         .find({ _id: { $in: courseIds } })
         .lean();
 
-     return new CustomResponse(200, 'Fetch Paid Courses', {
+      return new CustomResponse(200, 'Fetch Paid Courses', {
         courses: courses || [],
       });
     } catch (error) {

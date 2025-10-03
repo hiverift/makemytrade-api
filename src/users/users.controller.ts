@@ -1,4 +1,4 @@
-import { Controller, Get, Param,Query, Patch, Body,Put, Delete, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, Param, Query, Patch, Body, Put, Request, Delete, UseGuards, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/common/decorators/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -10,10 +10,10 @@ import { UpdateStatusDto } from './dto/update-status.dto';
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(private readonly users: UsersService) { }
 
   // Admin can create any user (including admin)
-  @Roles('admin','user')
+  @Roles('admin', 'user')
   @Post()
   create(@Body() dto: CreateUserDto) {
     return this.users.create(dto);
@@ -35,13 +35,13 @@ export class UsersController {
 
   // Admin: update any user; User: can be implemented via /me in auth controller
   @Patch(':id')
-  @Roles('admin','user')
+  @Roles('admin', 'user')
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.users.update(id, dto);
   }
 
   @Delete(':id')
-  @Roles('admin','user')
+  @Roles('admin', 'user')
   remove(@Param('id') id: string) {
     return this.users.remove(id);
   }
@@ -50,22 +50,27 @@ export class UsersController {
     @Param('userId') userId: string,
     @Query('limit') limit = '50',
     @Query('skip') skip = '0',
-  ){
+  ) {
     const l = parseInt(limit as string, 10);
     const s = parseInt(skip as string, 10);
     return await this.users.getAssets(userId, l, s);
   }
 
-@Get(':userId/items-count')
-@Roles('admin','user')
-async getUserItemsCount(@Param('userId') userId: string) {
-  return this.users.getUserItemsCount(userId);
-}
+  @Get(':userId/items-count')
+  @Roles('admin', 'user')
+  async getUserItemsCount(@Param('userId') userId: string) {
+    return this.users.getUserItemsCount(userId);
+  }
 
- @Put('update-status/:phoneNumber')
-    async updateStatus(@Param('phoneNumber') phoneNumber: string, @Body() statusDto: UpdateStatusDto) {
-      return this.users.updateStatus(phoneNumber, statusDto);
-    }
+  @Get(':userId/purchased-courses')
+  async getPurchasedCourses(@Param('userId') userId: string, @Request() req) {
+   return this.users.getPurchasedCourses(userId);
+  }
 
-    
+  @Put('update-status/:phoneNumber')
+  async updateStatus(@Param('phoneNumber') phoneNumber: string, @Body() statusDto: UpdateStatusDto) {
+    return this.users.updateStatus(phoneNumber, statusDto);
+  }
+
+
 }

@@ -240,7 +240,6 @@ export class UsersService {
         .lean()
         .exec();
       console.log('Orders fetched:', orders);
-      // Build maps of latest order per item id & type
       const latestCourseOrderMap = new Map<string, any>();
       const latestWebinarOrderMap = new Map<string, any>();
       const latestAppointmentOrderMap = new Map<string, any>();
@@ -271,7 +270,6 @@ export class UsersService {
         appointmentIds.length ? this.bookingModel.find({ _id: { $in: appointmentIds } }).lean().exec() : Promise.resolve([]),
       ]);
 
-      // 3) Build response arrays, including paid flag and last order summary
       const coursesResult = (courses || []).map((c: any) => {
         const id = c._id.toString();
         const ord = latestCourseOrderMap.get(id) || null;
@@ -311,8 +309,7 @@ export class UsersService {
         };
       });
 
-      // 4) Optionally: include items with no orders? If you want all items user owns (even unpaid/not-ordered),
-      // you'd need a different data model. For now we show items that have at least one order record.
+
       return new CustomResponse(200, 'User assets fetched', {
         courses: coursesResult,
         webinars: webinarsResult,
@@ -324,6 +321,43 @@ export class UsersService {
       throw new CustomError(500, 'Failed to fetch user assets');
     }
   }
+
+
+
+
+
+  async getPurchasedCourses(userId: string) {
+    try {
+
+      if (!userId) throw new CustomError(400, 'userId required');
+      // Find all paid orders for the user
+      const orders = await this.orderModel
+        .find({
+          userId,
+          status: 'paid',
+        })
+        .lean();
+
+      // Extract course IDs from orders
+      const courseIds = orders
+        .filter(order => order.courseId) // Ensure courseId exists
+        .map(order => order.courseId);
+
+      // Fetch course details for all course IDs
+      const courses = await this.courseModel
+        .find({ _id: { $in: courseIds } })
+        .lean();
+
+     return new CustomResponse(200, 'Fetch Paid Courses', {
+        courses: courses || [],
+      });
+    } catch (error) {
+      throwException(error);
+    }
+  }
+
+
+
 }
 
 /** Helper: reduce order object to safe summary to return in API */
@@ -338,7 +372,7 @@ function summarizeOrder(o: any) {
     createdAt: o.createdAt || null,
     updatedAt: o.updatedAt || null,
   };
-
-
-
 }
+
+
+

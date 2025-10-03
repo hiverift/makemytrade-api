@@ -71,6 +71,24 @@ export class Webinar extends Document {
   @Prop({required:true})
   youtubeVideoId:string;
 
+  @Prop()
+  googleMeetLink?:string;
+
+  @Prop()
+  googleEventId?:string;
+
+  @Prop()
+  adminOauthTokens?:string; // store admin oauth tokens (access + refresh) as JSON string
+
+  @Prop() 
+  meetLink?:string;  
+
+  @Prop()
+  createdBy:string;  // admin user id who created this webinar
+    
+  @Prop()   
+  endDate?: Date;
+
   
 }
 

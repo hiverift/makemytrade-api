@@ -77,4 +77,8 @@ export class CreateWebinarDto {
 
   @IsString()
   youtubeVideoId:string;
+
+  @IsOptional()
+  @IsString() 
+  meetLink?:string;
 }

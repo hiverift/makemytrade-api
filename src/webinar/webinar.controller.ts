@@ -6,6 +6,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { WebinarsService } from './webinar.service';
 import { CreateWebinarDto } from './dto/create-webinar.dto';
 import { UpdateWebinarDto } from './dto/update-webinar.dto';
+import { CreateMeetDto } from 'src/google/dto/create-google-meet.dto';
 
 @Controller('webinars')
 export class WebinarController {
@@ -16,6 +17,18 @@ export class WebinarController {
   create(@UploadedFile() thumbnail: Express.Multer.File, @Body() dto: CreateWebinarDto) {
     console.log('thumbnail from controller', thumbnail);
     return this.service.create(dto, thumbnail);
+  }
+
+  @Post('/:id/create-meet')
+  async createMeet(@Param('id') id: string, @Body() dto: CreateMeetDto) {
+     console.log('create meet dto', dto);
+    return this.service.createMeetForWebinar(id, {
+      title: dto.title,
+      description: dto.description,
+      start: dto.startDate,
+      end: dto.endDate,
+      useServiceAccount: false, // or true — set as per your need
+    });
   }
   @Get('filter')
   async filter(@Query() query: any) {
@@ -60,5 +73,7 @@ export class WebinarController {
   getLive(@Param('id') id: string) {
     return this.service.getLiveDetails(id);
   }
+
+   
 
 }

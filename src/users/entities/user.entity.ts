@@ -9,7 +9,7 @@ export class User {
   email!: string;
 
   @Prop({ type: String, required: true, unique: true, trim: true })
-  mobile!: string;   // 👈 नया field (unique भी)
+  mobile!: string;   
 
   @Prop({ type: String, required: true })
   name!: string;
@@ -27,9 +27,26 @@ export class User {
   refreshTokenHash!: string | null;
   @Prop({ enum: ['active', 'expired', 'cancelled'], default: 'active' })
   status: string;
+   
+   @Prop({ default: false })
+  onlineStatus: boolean;
+  
+  @Prop({ default: true })
+  profileStatus: boolean;
+  
+  @Prop({ default: Date.now })
+  lastSeen: Date;
 
   @Prop({ required: true })
   expiryDate: Date;
+
+  @Prop({required:false})
+  username:string;
+
+  @Prop({required:false})
+  profilePicture:string;
+
+
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

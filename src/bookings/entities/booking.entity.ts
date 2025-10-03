@@ -15,6 +15,9 @@ export class Booking extends Document {
   @Prop({ type: String })
   paymentRef?: string;
 
+  @Prop({ type: String } )
+  itemType?: string;
+
   @Prop({ type: String, enum: ['pending','paid','cancelled'], default: 'pending' })
   status?: string;
 

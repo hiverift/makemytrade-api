@@ -7,11 +7,17 @@ import { UpdateWebinarDto } from './dto/update-webinar.dto';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
 import { fileUpload } from 'src/util/fileupload';
+import { GoogleService } from 'src/google/google.service';
+import { Logger } from '@nestjs/common';
+import { Admin ,AdminDocument} from 'src/users/entities/admin.entity';
 
 @Injectable()
 export class WebinarsService {
+  private readonly logger = new Logger(WebinarsService.name);
   constructor(
+    private google: GoogleService,
     @InjectModel(Webinar.name) private webinarModel: Model<Webinar>,
+    @InjectModel(Admin.name) private adminModal: Model<AdminDocument>,
   ) { }
 
   private buildThumbUrl(filename?: string) {
@@ -123,6 +129,9 @@ export class WebinarsService {
       const exists = (webinar.attendees || []).some(a => String(a) === String(uid));
       if (exists) return new CustomError(400, 'Already registered');
 
+      if (!webinar.attendees) {
+        webinar.attendees = [];
+      }
       webinar.attendees.push(uid);
       webinar.attendeesCount = (webinar.attendeesCount || 0) + 1;
       await webinar.save();
@@ -238,6 +247,48 @@ export class WebinarsService {
     } catch (e) {
       console.error('Webinar filter error:', e);
       return new CustomError(500, 'Failed to filter webinars');
+    }
+  }
+
+
+ 
+   async createMeetForWebinar(webinarId: string, p0: { title: string; description: string | undefined; start: string | undefined; end: string | undefined; useServiceAccount: boolean; }, adminEmail?: string) {
+    try {
+      if (!Types.ObjectId.isValid(webinarId)) return new CustomError(400, 'Invalid webinar id');
+      const webinar = await this.webinarModel.findById(webinarId);
+      if (!webinar) return new CustomError(404, 'Webinar not found');
+
+      const emailToUse = adminEmail ?? process.env.ADMIN_EMAIL;
+      if (!emailToUse) return new CustomError(400, 'Admin email not provided and ADMIN_EMAIL not set in env');
+
+      const admin = await this.adminModal.findOne({ email: emailToUse }).select('+googleOauthTokens').lean();
+      console.log('admin found for email', emailToUse, admin);
+      if (!admin || !admin.googleOauthTokens) return new CustomError(404, 'Admin OAuth tokens not found — run OAuth flow first');
+
+      const start = webinar.startDate ? new Date(webinar.startDate).toISOString() : new Date().toISOString();
+      const end   = webinar.endDate ? new Date(webinar.endDate).toISOString() : new Date(new Date(start).getTime() + 60*60*1000).toISOString();
+
+      const event = await this.google.createMeetEventUsingTokens({
+        oauthTokens: admin.googleOauthTokens,
+        title: webinar.title || 'Webinar',
+        description: webinar.description || '',
+        start,
+        end,
+      });
+
+      // Extract meet link
+      const meetUrl = event?.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri
+                    || event?.hangoutLink
+                    || null;
+
+      webinar.meetLink = meetUrl ?? undefined;
+      webinar.googleEventId = event.id ?? undefined;
+      await webinar.save();
+
+      return new CustomResponse(200, 'Meet created and saved on webinar', { meetUrl, event });
+    } catch (e:any) {
+      this.logger.error('createMeetForWebinar error', e);
+      return new CustomError(500, e?.message || 'Failed to create meet for webinar');
     }
   }
 

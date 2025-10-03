@@ -21,6 +21,9 @@ import { KycModule } from './kyc/kyc.module';
 import { PaymentsModule } from './payment/payment.module';
 import { OrdersModule } from './order/order.module';
 import { YoutubeModule } from './youtube-tutorial/youtube.module';
+import { MessageModule } from './message/message.module';
+import { GoogleService } from './google/google.service';
+import { GoogleModule } from './google/google.module';
 
 @Module({
   imports: [
@@ -30,7 +33,7 @@ import { YoutubeModule } from './youtube-tutorial/youtube.module';
     }),
     MongooseModule.forRootAsync(mongoConfig),
     AuthModule,
-    UsersModule,
+    UsersModule,    
     CoursesModule,
     CategoriesModule,
     ContactModule,
@@ -44,7 +47,10 @@ import { YoutubeModule } from './youtube-tutorial/youtube.module';
     TransactionModule,
     KycModule,
     OrdersModule,
-    YoutubeModule
+    YoutubeModule,
+    MessageModule,
+    GoogleModule
   ],
+  providers: [GoogleService],
 })
 export class AppModule {}

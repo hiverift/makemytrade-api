@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Patch, Body, Delete, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, Param,Query, Patch, Body,Put, Delete, UseGuards, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/common/decorators/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/decorators/guards/roles.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -44,10 +45,27 @@ export class UsersController {
   remove(@Param('id') id: string) {
     return this.users.remove(id);
   }
+  @Get(':userId/assets')
+  async getAssets(
+    @Param('userId') userId: string,
+    @Query('limit') limit = '50',
+    @Query('skip') skip = '0',
+  ){
+    const l = parseInt(limit as string, 10);
+    const s = parseInt(skip as string, 10);
+    return await this.users.getAssets(userId, l, s);
+  }
 
 @Get(':userId/items-count')
 @Roles('admin','user')
 async getUserItemsCount(@Param('userId') userId: string) {
   return this.users.getUserItemsCount(userId);
 }
+
+ @Put('update-status/:phoneNumber')
+    async updateStatus(@Param('phoneNumber') phoneNumber: string, @Body() statusDto: UpdateStatusDto) {
+      return this.users.updateStatus(phoneNumber, statusDto);
+    }
+
+    
 }

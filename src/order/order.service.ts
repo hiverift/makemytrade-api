@@ -275,6 +275,8 @@ export class OrdersService {
   /** Resolve price using whichever ID provided (returns paise) */
   private async resolvePriceByIds({ courseId, webinarId, appointmentId, resolvedType }: { courseId?: string; webinarId?: string; appointmentId?: string; resolvedType?: string; }): Promise<number | null> {
     try {
+      console.log('resolvePriceByIds', resolvedType);
+      console.log('appointmentId', appointmentId);
       if (courseId) {
         const raw = await this.coursesService.findById(courseId);
         const course = this.extractEntity(raw);

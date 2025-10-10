@@ -36,10 +36,11 @@ export class UsersService {
     return bcrypt.hash(data, salt);
   }
 
-  async create(dto: CreateUserDto) {
+   async create(dto: CreateUserDto) {
     try {
       const userExit = await this.userModel.findOne({ mobile: dto.mobile }).lean();
       if (userExit) throw new CustomError(401, 'User Already Exits');
+
       const passwordHash = await this.hash(dto.password);
       const user = new this.userModel({
         email: dto.email,
@@ -48,15 +49,20 @@ export class UsersService {
         mobile: dto.mobile,
         role: dto.role ?? 'user',
       });
+
       const user1 = await user.save();
       const plain = user1.toObject();
+      // remove secrets before returning (but return the document/plain object)
       delete (plain as any).passwordHash;
       delete (plain as any).refreshTokenHash;
-      return new CustomResponse(200, 'Create User Successfully', plain)
+
+      // Return the plain user object (not wrapped)
+      return plain;
     } catch (e) {
-      throwException(e)
+      throwException(e);
     }
   }
+
 
   async findByEmail(email: string, includeSecrets = false) {
     try {

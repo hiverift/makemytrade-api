@@ -13,7 +13,7 @@ export class AuthService {
     private readonly users: UsersService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   private async signTokens(user: { _id: string; email: string; role: 'user' | 'admin' }) {
     const payload = { sub: user._id.toString(), email: user.email, role: user.role };
@@ -33,70 +33,66 @@ export class AuthService {
     return { accessToken: access, refreshToken: refresh };
   }
 
- async register(dto: RegisterDto) {
-  try {
-   const extisMobile = await this.users.findByMobile(dto.mobile);
-    if (extisMobile) return new CustomError(403, 'mobile already registered');
+   async register(dto: RegisterDto) {
+    try {
+      const extisMobile = await this.users.findByMobile(dto.mobile);
+      if (extisMobile) return new CustomError(403, 'mobile already registered');
 
-    const existing = await this.users.findByEmail(dto.email);
-    if (existing) return new CustomError(403, 'Email already registered');
+      const existing = await this.users.findByEmail(dto.email);
+      if (existing) return new CustomError(403, 'Email already registered');
 
-  
-    const role = dto.role ?? 'user';
-    console.log('role',role);
-   
-    const created = await this.users.create({ ...dto, role });
-    const user = await this.users.findByEmail(dto.email);
+      const role = dto.role ?? 'user';
+      const created = await this.users.create({ ...dto, role });
+      // `created` should be the plain user object returned by UsersService.create
+      const user = created; // already plain object
 
+      const tokens = await this.signTokens(user as any);
 
-    const tokens = await this.signTokens(user as any);
-
-    return new CustomResponse(200, 'Registration successful', { user: created, ...tokens });
-  } catch (e) {
-    return new CustomError(500, 'Registration failed',);
-  }
-}
-
-
-async login(dto: LoginDto) {
-  try {
-    let user;
-
-    // ✅ Find by Email or Mobile
-    if (dto.email) {
-      user = await this.users.findByEmail(dto.email, true);
-    } else if (dto.mobile) {
-      user = await this.users.findByMobile(dto.mobile, true);
-    } else {
-      return new CustomError(400, 'Email or Mobile is required');
+      return new CustomResponse(200, 'Registration successful', { user, ...tokens });
+    } catch (e) {
+      console.error('Register error:', e);
+      return new CustomError(500, 'Registration failed');
     }
-
-    if (!user) return new CustomError(401, 'Invalid credentials');
-
-    // ✅ Password check
-    const isPasswordValid = await this.users.comparePassword(user.email, dto.password);
-    if (!isPasswordValid) return new CustomError(401, 'Invalid credentials');
-
-    // ✅ Role must match request
-    if (user.role !== dto.role) {
-      return new CustomError(403, `This account is not a ${dto.role}`);
-    }
-
-    // ✅ Issue Tokens
-    const tokens = await this.signTokens(user as any);
-    const plain = (user as any).toObject?.() ?? user;
-    delete plain.passwordHash;
-    delete plain.refreshTokenHash;
-
-    return new CustomResponse(200, `${dto.role} login successful`, {
-      user: plain,
-      ...tokens,
-    });
-  } catch (e) {
-    console.error('Login error:', e);
-    return new CustomError(500, 'Login failed');
   }
-}
+
+
+
+  async login(dto: LoginDto) {
+    try {
+      let user;
+
+      if (dto.email) {
+        user = await this.users.findByEmail(dto.email, true);
+      } else if (dto.mobile) {
+        user = await this.users.findByMobile(dto.mobile, true);
+      } else {
+        return new CustomError(400, 'Email or Mobile is required');
+      }
+
+      if (!user) return new CustomError(401, 'Invalid credentials');
+
+      const isPasswordValid = await this.users.comparePassword(user.email, dto.password);
+      if (!isPasswordValid) return new CustomError(401, 'Invalid credentials');
+
+      if (user.role !== dto.role) {
+        return new CustomError(403, `This account is not a ${dto.role}`);
+      }
+
+
+      const tokens = await this.signTokens(user as any);
+      const plain = (user as any).toObject?.() ?? user;
+      delete plain.passwordHash;
+      delete plain.refreshTokenHash;
+
+      return new CustomResponse(200, `${dto.role} login successful`, {
+        user: plain,
+        ...tokens,
+      });
+    } catch (e) {
+      console.error('Login error:', e);
+      return new CustomError(500, 'Login failed');
+    }
+  }
 
 
 

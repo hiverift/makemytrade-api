@@ -13,7 +13,10 @@ export class LoginDto {
   @MinLength(6)
   password: string;
 
-   @IsString()
-  @IsIn(['user', 'admin'])   // 👈 role भी पास करना होगा
-  role: 'user' | 'admin';
+
+  @IsOptional()
+  @IsString()
+  role?: 'user' | 'admin';
+
+  expiryDate?: Date;
 }

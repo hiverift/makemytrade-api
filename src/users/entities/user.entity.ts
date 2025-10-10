@@ -37,7 +37,7 @@ export class User {
   @Prop({ default: Date.now })
   lastSeen: Date;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   expiryDate: Date;
 
   @Prop({required:false})

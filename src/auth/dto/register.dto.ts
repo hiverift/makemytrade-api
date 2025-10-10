@@ -18,6 +18,7 @@ export class RegisterDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['user', 'admin'])
   role?: 'user' | 'admin';   // 👈 अब optional
+
+  expiryDate?: Date;
 }

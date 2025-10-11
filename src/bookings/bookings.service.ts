@@ -41,109 +41,244 @@ export class BookingsService {
 
   // bulk create daily slots between date range for given times (admin)
   // replace the existing bulkCreateSlots method with this
-  async bulkCreateSlots(dto: any) {
-    try {
-      // debug raw body & keys
-      this.logger.debug('bulkCreateSlots raw DTO -> ' + JSON.stringify(dto));
-      this.logger.debug('bulkCreateSlots dto keys -> ' + Object.keys(dto).join(','));
+  // async bulkCreateSlots(dto: any) {
+  //   try {
+  //     // debug raw body & keys
+  //     this.logger.debug('bulkCreateSlots raw DTO -> ' + JSON.stringify(dto));
+  //     this.logger.debug('bulkCreateSlots dto keys -> ' + Object.keys(dto).join(','));
 
-      if (!dto || !dto.serviceId) {
-        return new CustomError(400, 'serviceId is required');
-      }
+  //     if (!dto || !dto.serviceId) {
+  //       return new CustomError(400, 'serviceId is required');
+  //     }
 
-      const service = await this.serviceModel.findById(dto.serviceId).lean();
-      if (!service) return new CustomError(404, 'Service not found');
+  //     const service = await this.serviceModel.findById(dto.serviceId).lean();
+  //     if (!service) return new CustomError(404, 'Service not found');
 
-      // Try many places to find times (robust)
-      let rawTimes = (dto as any).times ?? (dto as any)['times[]'] ?? (dto as any).items?.times ?? undefined;
+  //     // Try many places to find times (robust)
+  //     let rawTimes = (dto as any).times ?? (dto as any)['times[]'] ?? (dto as any).items?.times ?? undefined;
 
-      // Sometimes when validation/transformation occurs, body may be nested: check req-like shape
-      if (!rawTimes && (dto as any).body) {
-        rawTimes = (dto as any).body.times ?? (dto as any).body['times[]'] ?? undefined;
-      }
+  //     // Sometimes when validation/transformation occurs, body may be nested: check req-like shape
+  //     if (!rawTimes && (dto as any).body) {
+  //       rawTimes = (dto as any).body.times ?? (dto as any).body['times[]'] ?? undefined;
+  //     }
 
-      this.logger.debug('bulkCreateSlots rawTimes initial -> ' + JSON.stringify(rawTimes) + ' (type: ' + typeof rawTimes + ')');
+  //     this.logger.debug('bulkCreateSlots rawTimes initial -> ' + JSON.stringify(rawTimes) + ' (type: ' + typeof rawTimes + ')');
 
-      // normalize into string[]
-      let times: string[] = [];
-      if (Array.isArray(rawTimes)) {
-        times = rawTimes.map(String).map(s => s.trim()).filter(Boolean);
-      } else if (typeof rawTimes === 'string') {
-        const raw = rawTimes.trim();
-        // attempt JSON parse
-        try {
-          const parsed = JSON.parse(raw);
-          times = Array.isArray(parsed) ? parsed.map(String).map(s => s.trim()).filter(Boolean) : raw.replace(/^\[|\]$/g, '').split(',').map(s => s.replace(/['"]/g, '').trim()).filter(Boolean);
-        } catch {
-          times = raw.split(',').map((s: string) => s.trim()).filter(Boolean);
-        }
-      } else if (rawTimes == null) {
-        // As a last resort, check keys like times[0], times[1] (form-data sent by some clients)
-        const possibleIndexed: string[] = [];
-        Object.keys(dto).forEach(k => {
-          const m = k.match(/^times\[(\d+)\]$/);
-          if (m) possibleIndexed.push(dto[k]);
-        });
-        if (possibleIndexed.length) {
-          times = possibleIndexed.map(String).map(s => s.trim()).filter(Boolean);
-        } else {
-          // nothing
-          times = [];
-        }
-      } else {
-        // other types => cast
-        times = String(rawTimes).split(',').map((s: string) => s.trim()).filter(Boolean);
-      }
+  //     // normalize into string[]
+  //     let times: string[] = [];
+  //     if (Array.isArray(rawTimes)) {
+  //       times = rawTimes.map(String).map(s => s.trim()).filter(Boolean);
+  //     } else if (typeof rawTimes === 'string') {
+  //       const raw = rawTimes.trim();
+  //       // attempt JSON parse
+  //       try {
+  //         const parsed = JSON.parse(raw);
+  //         times = Array.isArray(parsed) ? parsed.map(String).map(s => s.trim()).filter(Boolean) : raw.replace(/^\[|\]$/g, '').split(',').map(s => s.replace(/['"]/g, '').trim()).filter(Boolean);
+  //       } catch {
+  //         times = raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+  //       }
+  //     } else if (rawTimes == null) {
+  //       // As a last resort, check keys like times[0], times[1] (form-data sent by some clients)
+  //       const possibleIndexed: string[] = [];
+  //       Object.keys(dto).forEach(k => {
+  //         const m = k.match(/^times\[(\d+)\]$/);
+  //         if (m) possibleIndexed.push(dto[k]);
+  //       });
+  //       if (possibleIndexed.length) {
+  //         times = possibleIndexed.map(String).map(s => s.trim()).filter(Boolean);
+  //       } else {
+  //         // nothing
+  //         times = [];
+  //       }
+  //     } else {
+  //       // other types => cast
+  //       times = String(rawTimes).split(',').map((s: string) => s.trim()).filter(Boolean);
+  //     }
 
-      this.logger.debug('bulkCreateSlots normalized times -> ' + JSON.stringify(times));
+  //     this.logger.debug('bulkCreateSlots normalized times -> ' + JSON.stringify(times));
 
-      if (!times.length) return new CustomError(400, 'No times provided (times must be an array or comma-separated string).');
+  //     if (!times.length) return new CustomError(400, 'No times provided (times must be an array or comma-separated string).');
 
-      // parse from/to
-      const fromStr = String(dto.from ?? '').substring(0, 10);
-      const toStr = String(dto.to ?? '').substring(0, 10);
-      const fromDate = new Date(fromStr);
-      const toDate = new Date(toStr);
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        return new CustomError(400, 'Invalid from/to date (use YYYY-MM-DD or ISO format).');
-      }
-      if (fromDate.getTime() > toDate.getTime()) {
-        return new CustomError(400, '"from" must be before or same as "to".');
-      }
+  //     // parse from/to
+  //     const fromStr = String(dto.from ?? '').substring(0, 10);
+  //     const toStr = String(dto.to ?? '').substring(0, 10);
+  //     const fromDate = new Date(fromStr);
+  //     const toDate = new Date(toStr);
+  //     if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+  //       return new CustomError(400, 'Invalid from/to date (use YYYY-MM-DD or ISO format).');
+  //     }
+  //     if (fromDate.getTime() > toDate.getTime()) {
+  //       return new CustomError(400, '"from" must be before or same as "to".');
+  //     }
 
-      // build docs
-      const docs: any[] = [];
-      const serviceDuration = Number(service.durationMinutes) || 60;
-      for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
-        const day = d.toISOString().substring(0, 10);
-        for (const t of times) {
-          const parts = String(t).split(':').map(Number);
-          const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
-          const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
-          const startIso = `${day}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00.000Z`;
-          const start = new Date(startIso);
-          const end = new Date(start.getTime() + serviceDuration * 60000);
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
-          docs.push({
-            serviceId: new Types.ObjectId(dto.serviceId),
-            start,
-            end,
-            capacity: dto.capacity ?? 1,
-            seatsLeft: dto.capacity ?? 1,
-            active: true,
-          });
-        }
-      }
+  //     // build docs
+  //     const docs: any[] = [];
+  //     const serviceDuration = Number(service.durationMinutes) || 60;
+  //     for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
+  //       const day = d.toISOString().substring(0, 10);
+  //       for (const t of times) {
+  //         const parts = String(t).split(':').map(Number);
+  //         const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+  //         const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+  //         const startIso = `${day}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00.000Z`;
+  //         const start = new Date(startIso);
+  //         const end = new Date(start.getTime() + serviceDuration * 60000);
+  //         if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
+  //         docs.push({
+  //           serviceId: new Types.ObjectId(dto.serviceId),
+  //           start,
+  //           end,
+  //           capacity: dto.capacity ?? 1,
+  //           seatsLeft: dto.capacity ?? 1,
+  //           active: true,
+  //         });
+  //       }
+  //     }
 
-      if (!docs.length) return new CustomError(400, 'No slots generated. Check date range and times.');
+  //     if (!docs.length) return new CustomError(400, 'No slots generated. Check date range and times.');
 
-      await this.slotModel.insertMany(docs);
-      return new CustomResponse(201, 'Slots created', { count: docs.length });
-    } catch (e: any) {
-      this.logger.error('bulkCreateSlots error', e);
-      return new CustomError(500, e?.message ?? 'Bulk slot create failed');
+  //     await this.slotModel.insertMany(docs);
+  //     return new CustomResponse(201, 'Slots created', { count: docs.length });
+  //   } catch (e: any) {
+  //     this.logger.error('bulkCreateSlots error', e);
+  //     return new CustomError(500, e?.message ?? 'Bulk slot create failed');
+  //   }
+  // }
+async bulkCreateSlots(dto: any) {
+  try {
+    // debug raw body & keys
+    this.logger.debug('bulkCreateSlots raw DTO -> ' + JSON.stringify(dto));
+    this.logger.debug('bulkCreateSlots dto keys -> ' + Object.keys(dto).join(','));
+
+    if (!dto || !dto.serviceId) {
+      return new CustomError(400, 'serviceId is required');
     }
+
+    const service = await this.serviceModel.findById(dto.serviceId).lean();
+    if (!service) return new CustomError(404, 'Service not found');
+
+    // Try many places to find times (robust)
+    let rawTimes = (dto as any).times ?? (dto as any)['times[]'] ?? (dto as any).items?.times ?? undefined;
+
+    // Sometimes when validation/transformation occurs, body may be nested: check req-like shape
+    if (!rawTimes && (dto as any).body) {
+      rawTimes = (dto as any).body.times ?? (dto as any).body['times[]'] ?? undefined;
+    }
+
+    this.logger.debug('bulkCreateSlots rawTimes initial -> ' + JSON.stringify(rawTimes) + ' (type: ' + typeof rawTimes + ')');
+
+    // normalize into string[]
+    let times: string[] = [];
+    if (Array.isArray(rawTimes)) {
+      times = rawTimes.map(String).map(s => s.trim()).filter(Boolean);
+    } else if (typeof rawTimes === 'string') {
+      const raw = rawTimes.trim();
+      // attempt JSON parse
+      try {
+        const parsed = JSON.parse(raw);
+        times = Array.isArray(parsed) ? parsed.map(String).map(s => s.trim()).filter(Boolean) : raw.replace(/^\[|\]$/g, '').split(',').map(s => s.replace(/['"]/g, '').trim()).filter(Boolean);
+      } catch {
+        times = raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+    } else if (rawTimes == null) {
+      // As a last resort, check keys like times[0], times[1] (form-data sent by some clients)
+      const possibleIndexed: string[] = [];
+      Object.keys(dto).forEach(k => {
+        const m = k.match(/^times\[(\d+)\]$/);
+        if (m) possibleIndexed.push(dto[k]);
+      });
+      if (possibleIndexed.length) {
+        times = possibleIndexed.map(String).map(s => s.trim()).filter(Boolean);
+      } else {
+        // nothing
+        times = [];
+      }
+    } else {
+      // other types => cast
+      times = String(rawTimes).split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+
+    this.logger.debug('bulkCreateSlots normalized times -> ' + JSON.stringify(times));
+
+    if (!times.length) return new CustomError(400, 'No times provided (times must be an array or comma-separated string).');
+
+    // parse from/to (expect YYYY-MM-DD or ISO)
+    const fromStr = String(dto.from ?? '').substring(0, 10);
+    const toStr = String(dto.to ?? '').substring(0, 10);
+    // Build fromDate and toDate as UTC dates at start of day to avoid local TZ issues
+    const fromParts = fromStr.split('-').map(Number);
+    const toParts = toStr.split('-').map(Number);
+    if (fromParts.length < 3 || toParts.length < 3) {
+      return new CustomError(400, 'Invalid from/to date (use YYYY-MM-DD or ISO format).');
+    }
+    const fromDate = new Date(Date.UTC(fromParts[0], fromParts[1] - 1, fromParts[2])); // UTC midnight of from
+    const toDate = new Date(Date.UTC(toParts[0], toParts[1] - 1, toParts[2])); // UTC midnight of to
+
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      return new CustomError(400, 'Invalid from/to date (use YYYY-MM-DD or ISO format).');
+    }
+    if (fromDate.getTime() > toDate.getTime()) {
+      return new CustomError(400, '"from" must be before or same as "to".');
+    }
+
+    // IST offset to apply when converting desired IST HH:MM to stored UTC
+    const IST_OFFSET_HOURS = 5;
+    const IST_OFFSET_MINUTES = 30;
+
+    // build docs
+    const docs: any[] = [];
+    const serviceDuration = Number(service.durationMinutes) || 60;
+
+    // iterate day-by-day using UTC date values to avoid local TZ shifts
+    for (let d = new Date(fromDate.getTime()); d.getTime() <= toDate.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
+      const year = d.getUTCFullYear();
+      const monthIndex = d.getUTCMonth(); // 0-based
+      const dayOfMonth = d.getUTCDate();
+
+      for (const t of times) {
+        // support formats like "HH:MM" or "H:MM" or "HH" or "HH:MM:SS"
+        const parts = String(t).split(':').map(p => Number(p));
+        const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+        const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+
+        // Calculate the UTC milliseconds that correspond to the desired IST time on this date.
+        // IST time -> UTC = IST - 5:30
+        // Date.UTC will handle day rollovers (if hour/min go negative or exceed 24)
+        const startUtcMillis = Date.UTC(
+          year,
+          monthIndex,
+          dayOfMonth,
+          hh - IST_OFFSET_HOURS,
+          mm - IST_OFFSET_MINUTES,
+          0,
+          0
+        );
+
+        const start = new Date(startUtcMillis); // this is a Date object representing correct UTC moment
+        const end = new Date(start.getTime() + serviceDuration * 60000);
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
+
+        docs.push({
+          serviceId: new Types.ObjectId(dto.serviceId),
+          start,
+          end,
+          capacity: dto.capacity ?? 1,
+          seatsLeft: dto.capacity ?? 1,
+          active: true,
+        });
+      }
+    }
+
+    if (!docs.length) return new CustomError(400, 'No slots generated. Check date range and times.');
+
+    await this.slotModel.insertMany(docs);
+    return new CustomResponse(201, 'Slots created', { count: docs.length });
+  } catch (e: any) {
+    this.logger.error('bulkCreateSlots error', e);
+    return new CustomError(500, e?.message ?? 'Bulk slot create failed');
   }
+}
 
 
 

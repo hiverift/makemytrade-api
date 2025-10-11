@@ -4,15 +4,18 @@ import { Model } from 'mongoose';
 import { Dashboard, DashboardDocument } from './entities/dashboard-service.entity';
 import { UsersService } from '../users/users.service';
 import { CoursesService } from 'src/courses/courses.service';
+import {OrdersService} from 'src/order/order.service';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
+import orders from 'razorpay/dist/types/orders';
 
 @Injectable()
 export class DashboardService {
   constructor(
     @InjectModel(Dashboard.name) private dashboardModel: Model<DashboardDocument>,
     private usersService: UsersService,
-    private couseservice: CoursesService
+    private couseservice: CoursesService,
+    private ordersService: OrdersService,
   ) { }
 
   async getDashboardData() {

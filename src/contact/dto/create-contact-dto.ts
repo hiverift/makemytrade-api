@@ -20,4 +20,21 @@ export class CreateContactDto {
   @IsNotEmpty()
   @IsString()
   message: string;
+
+  // Optional fields matching your form
+  @IsOptional()
+  @IsString()
+  company?: string;
+
+  @IsOptional()
+  @IsString()
+  service?: string;
+
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @IsOptional()
+  @IsString()
+  timeline?: string;
 }

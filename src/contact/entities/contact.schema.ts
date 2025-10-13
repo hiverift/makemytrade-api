@@ -18,6 +18,19 @@ export class Contact extends Document {
   @Prop({ required: true })
   message: string;
 
+  // Optional fields
+  @Prop()
+  company?: string;
+
+  @Prop()
+  service?: string;
+
+  @Prop()
+  industry?: string;
+
+  @Prop()
+  timeline?: string;
+
   @Prop({ default: Date.now })
   createdAt: Date;
 }

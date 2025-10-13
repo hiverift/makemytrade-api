@@ -11,6 +11,11 @@ export class ContactController {
     return this.service.createContact(dto);
   }
 
+  @Post('hiverift')
+  createContactTohiverift(@Body() dto: CreateContactDto) {
+    return this.service.createContactTohiverift(dto);
+  }
+
   @Get()
   getAllContacts() {
     return this.service.getAllContacts();

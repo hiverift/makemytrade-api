@@ -58,7 +58,7 @@ export class OrdersService {
   /** Create order — validate item exists and compute server-side price (paise) */
   async createOrder(dto: CreateOrderDto): Promise<CustomResponse> {
     try {
-    
+
       // Determine which ID provided
       const { courseId, webinarId, appointmentId, itemType } = dto;
 
@@ -80,17 +80,17 @@ export class OrdersService {
       console.log('check price from courses', pricePaise)
       // Check optional client-provided amount
       const opts: any = {};
-    if (dto.amount != null) {
-      opts.amount = Math.round(dto.amount * 100); // rupee → paise
-    }
-   
-    //  const finalprice= Math.round(dto.amount * 100);
+      if (dto.amount != null) {
+        opts.amount = Math.round(dto.amount * 100); // rupee → paise
+      }
+
+      //  const finalprice= Math.round(dto.amount * 100);
       if (opts.amount !== pricePaise) {
         throw new CustomError(400, 'Amount mismatch');
       }
 
       const orderRef = `ORD-${nanoid()}`;
-      console.log('userid ',dto.userId)
+      console.log('userid ', dto.userId)
       const order = new this.orderModel({
         orderId: orderRef,                  // <--- new line
         userId: dto.userId ? new Types.ObjectId(dto.userId) : undefined,
@@ -117,8 +117,8 @@ export class OrdersService {
   async createRazorpayOrder(orderId: string, dto: CreateRazorpayOrderDto): Promise<CustomResponse> {
     try {
       console.log('hiii order id ', orderId)
-      const order = await this.orderModel.findOne({orderId:orderId}).lean();
-      console.log('order',order)
+      const order = await this.orderModel.findOne({ orderId: orderId }).lean();
+      console.log('order', order)
       if (!order) throw new CustomError(404, 'Order not found');
 
       const amount = order.amount; // use DB amount
@@ -146,8 +146,8 @@ export class OrdersService {
         notes: (rOrder as any).notes,
       };
       order.status = OrderStatus.PENDING_PAYMENT;
-    const doc = this.orderModel.hydrate(order);
-     await doc.save();
+      const doc = this.orderModel.hydrate(order);
+      await doc.save();
 
       return new CustomResponse(200, 'Razorpay order created', { rOrder, orderId: order._id });
     } catch (err) {
@@ -184,7 +184,7 @@ export class OrdersService {
         order.status = OrderStatus.FAILED;
         await order.save();
         throw new CustomError(400, 'Invalid payment signature');
-      } 
+      }
 
       // Fetch payment from Razorpay to get final status and captured amount
       let paymentEntity: any = null;
@@ -221,11 +221,11 @@ export class OrdersService {
 
   /** Webhook signature verification */
   verifyWebhookSignature(body: string, signature: string): boolean {
-    console.log( 'scret',this.configService.get('RAZORPAY_WEBHOOK_SECRET'))
+    console.log('scret', this.configService.get('RAZORPAY_WEBHOOK_SECRET'))
     const webhookSecret = this.configService.get('RAZORPAY_WEBHOOK_SECRET') || '';
     console.log(webhookSecret)
     const expected = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
-     console.log('hiii',expected)
+    console.log('hiii', expected)
     return expected === signature;
   }
 
@@ -283,7 +283,7 @@ export class OrdersService {
         if (!course) return null;
         const rupees = (course.result.price ?? 0) as number;
         console.log('Math.round(rupees * 100)', Math.round(rupees * 100))
-        return Math.round(rupees * 100) ;
+        return Math.round(rupees * 100);
       }
 
       if (webinarId) {
@@ -295,13 +295,13 @@ export class OrdersService {
       }
       if (appointmentId) {
         const raw = await this.appointmentsService.findById(appointmentId);
-        console.log('raw',raw)
+        console.log('raw', raw)
         const appointment = this.extractEntity(raw);
         if (!appointment) return null;
         const rupees = (appointment.result.amount ?? appointment.result.amount ?? 0) as number;
         return Math.round(rupees * 100);
       }
-      
+
       // fallback: use resolvedType with IDs not given (shouldn't occur)
       if (resolvedType === 'course' && courseId) return this.resolvePriceByIds({ courseId });
       if (resolvedType === 'webinar' && webinarId) return this.resolvePriceByIds({ webinarId });
@@ -342,16 +342,16 @@ export class OrdersService {
   }
 
   /** read helpers */
- async findById(orderId: string): Promise<CustomResponse> {
-  try {
-    const order = await this.findOrderByIdOrRef(orderId);
-    if (!order) throw new CustomError(404, 'Order not found');
-    return new CustomResponse(200, 'Order fetched', { order });
-  } catch (err) {
-    if (err instanceof CustomError) throw err;
-    throw new CustomError(500, 'Failed to fetch order');
+  async findById(orderId: string): Promise<CustomResponse> {
+    try {
+      const order = await this.findOrderByIdOrRef(orderId);
+      if (!order) throw new CustomError(404, 'Order not found');
+      return new CustomResponse(200, 'Order fetched', { order });
+    } catch (err) {
+      if (err instanceof CustomError) throw err;
+      throw new CustomError(500, 'Failed to fetch order');
+    }
   }
-}
   async list(limit = 20, skip = 0): Promise<CustomResponse> {
     try {
       const orders = await this.orderModel.find().sort({ createdAt: -1 }).limit(limit).skip(skip).exec();
@@ -387,7 +387,7 @@ export class OrdersService {
   /** Get orders by webinarId */
   async findByWebinar(webinarId: string, limit = 20, skip = 0): Promise<CustomResponse> {
     try {
-      console.log('web',webinarId)
+      console.log('web', webinarId)
       const orders = await this.orderModel.find({ webinarId }).sort({ createdAt: -1 }).limit(limit).skip(skip).exec();
       return new CustomResponse(200, 'Orders fetched for webinar', { orders });
     } catch (err) {
@@ -400,10 +400,9 @@ export class OrdersService {
   async findByAppointment(appointmentId: string, limit = 20, skip = 0): Promise<CustomResponse> {
     try {
       const orders = await this.orderModel.find({ appointmentId }).sort({ createdAt: -1 }).limit(limit).skip(skip).exec();
-      console.log(orders,'orders')
-      if(!orders)
-      {
-        throw new CustomError(401,'Not found Order For this Id')
+      console.log(orders, 'orders')
+      if (!orders) {
+        throw new CustomError(401, 'Not found Order For this Id')
       }
       return new CustomResponse(200, 'Orders fetched for appointment', { orders });
     } catch (err) {
@@ -527,15 +526,100 @@ export class OrdersService {
     }
   }
   private async findOrderByIdOrRef(idOrRef: string) {
-  if (!idOrRef) return null;
-  // valid ObjectId -> treat as _id
-  if (Types.ObjectId.isValid(idOrRef)) {
-    // sometimes a 12-char string also passes; still okay
-    const byId = await this.orderModel.findById(idOrRef).exec();
-    if (byId) return byId;
-    // fallback to search by orderId too (in case an ORD-... also looks like valid ObjectId)
+    if (!idOrRef) return null;
+    // valid ObjectId -> treat as _id
+    if (Types.ObjectId.isValid(idOrRef)) {
+      // sometimes a 12-char string also passes; still okay
+      const byId = await this.orderModel.findById(idOrRef).exec();
+      if (byId) return byId;
+      // fallback to search by orderId too (in case an ORD-... also looks like valid ObjectId)
+    }
+    // otherwise search by orderId field
+    return await this.orderModel.findOne({ orderId: idOrRef }).exec();
   }
-  // otherwise search by orderId field
-  return await this.orderModel.findOne({ orderId: idOrRef }).exec();
-}
+
+  private async buildAdminOrderListByItemType(itemType: 'course' | 'webinar' | 'appointment', limit = 20, skip = 0) {
+    const orders = await this.orderModel
+      .find({
+        itemType,
+        status: OrderStatus.PAID,
+         'payment.status': 'captured'
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean()
+      .exec();
+
+    const items: any[] = [];
+
+    for (const o of orders) {
+      // Resolve user
+      let userEntity: any = null;
+      try {
+        if (o.userId) {
+          const userRaw = await (this.usersService as any).findById(o.userId.toString());
+          userEntity = this.extractEntity(userRaw) || null;
+        } else if (o.user) {
+          userEntity = o.user;
+        }
+      } catch (e) {
+        this.logger.warn('Failed to fetch user for order', { orderId: o._id, err: e });
+      }
+
+      // Resolve item (course/webinar/appointment)
+      let itemEntity: any = null;
+      try {
+        if (itemType === 'course' && o.courseId) {
+          const raw = await (this.coursesService as any).findById(o.courseId.toString());
+          itemEntity = this.extractEntity(raw) || null;
+        } else if (itemType === 'webinar' && o.webinarId) {
+          const raw = await (this.webinarsService as any).findById(o.webinarId.toString());
+          itemEntity = this.extractEntity(raw) || null;
+        } else if (itemType === 'appointment' && o.appointmentId) {
+          const raw = await (this.appointmentsService as any).findById(o.appointmentId.toString());
+          itemEntity = this.extractEntity(raw) || null;
+        }
+      } catch (e) {
+        this.logger.warn('Failed to fetch item for order', { orderId: o._id, err: e });
+      }
+
+      items.push({
+        order: o,
+        user: userEntity,
+        item: itemEntity,
+      });
+    }
+
+    return new CustomResponse(200, `Paid ${itemType} orders fetched`, { count: items.length, items });
+  }
+
+  async adminListPaidCourses(limit = 20, skip = 0): Promise<CustomResponse> {
+    try {
+      return await this.buildAdminOrderListByItemType('course', limit, skip);
+    } catch (err) {
+      this.logger.error('adminListPaidCourses error', err);
+      throw new CustomError(500, 'Failed to fetch paid course orders');
+    }
+  }
+
+  /** Admin: list paid webinar orders (with user & webinar details) */
+  async adminListPaidWebinars(limit = 20, skip = 0): Promise<CustomResponse> {
+    try {
+      return await this.buildAdminOrderListByItemType('webinar', limit, skip);
+    } catch (err) {
+      this.logger.error('adminListPaidWebinars error', err);
+      throw new CustomError(500, 'Failed to fetch paid webinar orders');
+    }
+  }
+
+  /** Admin: list paid appointment orders (with user & appointment details) */
+  async adminListPaidAppointments(limit = 20, skip = 0): Promise<CustomResponse> {
+    try {
+      return await this.buildAdminOrderListByItemType('appointment', limit, skip);
+    } catch (err) {
+      this.logger.error('adminListPaidAppointments error', err);
+      throw new CustomError(500, 'Failed to fetch paid appointment orders');
+    }
+  }
 }

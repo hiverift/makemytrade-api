@@ -98,4 +98,38 @@ export class OrdersController {
   async refund(@Param('id') id: string, @Body() dto: RefundPaymentDto) {
     return await this.ordersService.refundPayment(id, dto);
   }
+
+  @Get('admin/paid/courses')
+  // @UseGuards(AdminGuard) // <-- enable this in your project
+  async adminPaidCourses(
+    @Query('limit') limit = '20',
+    @Query('skip') skip = '0',
+  ) {
+    const l = parseInt(limit as any, 10) || 20;
+    const s = parseInt(skip as any, 10) || 0;
+    const resp = await this.ordersService.adminListPaidCourses(l, s);
+    return resp;
+  }
+
+  @Get('admin/paid/webinars')
+  // @UseGuards(AdminGuard)
+  async adminPaidWebinars(
+    @Query('limit') limit = '20',
+    @Query('skip') skip = '0',
+  ) {
+    const l = parseInt(limit as any, 10) || 20;
+    const s = parseInt(skip as any, 10) || 0;
+    return await this.ordersService.adminListPaidWebinars(l, s);
+  }
+
+  @Get('admin/paid/appointments')
+  // @UseGuards(AdminGuard)
+  async adminPaidAppointments(
+    @Query('limit') limit = '20',
+    @Query('skip') skip = '0',
+  ) {
+    const l = parseInt(limit as any, 10) || 20;
+    const s = parseInt(skip as any, 10) || 0;
+    return await this.ordersService.adminListPaidAppointments(l, s);
+  }
 }

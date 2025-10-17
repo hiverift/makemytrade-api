@@ -67,6 +67,9 @@ export class CreateWebinarDto {
   @IsString()
   videoUrl?: string;
 
+  @IsOptional()
+  @IsString()
+googleMeetLink?:string;
 
   @IsOptional()
   @IsString()

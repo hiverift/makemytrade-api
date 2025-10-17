@@ -5,6 +5,7 @@ import { Model, Types, isValidObjectId } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
 import { throwException } from 'src/util/errorhandling';
@@ -15,6 +16,10 @@ import { OrderDocument, Order } from 'src/order/entities/order.entity';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { Logger } from '@nestjs/common';
 import { use } from 'passport';
+import nodemailer from 'nodemailer';
+import { ConfigService } from '@nestjs/config';
+
+
 
 interface OrderDoc {
   _id: any;
@@ -36,16 +41,27 @@ interface OrderDoc {
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
-  constructor(
+  private transporter: nodemailer.Transporter;
 
+  constructor(
+    private configService: ConfigService,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Webinar.name) private webinarModel: Model<Webinar>,
     @InjectModel(Course.name) private courseModel: Model<Course>,
     @InjectModel(Booking.name) private bookingModel: Model<Booking>,
-    @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+    @InjectModel(Order.name) private orderModel: Model<OrderDocument>
 
 
-  ) { }
+  ) {
+    this.transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: this.configService.get<string>('GMAIL_USER'),
+        pass: this.configService.get<string>('GMAIL_PASS'),
+      },
+    });
+
+  }
 
   // helper
   private async hash(data: string) {
@@ -231,7 +247,7 @@ export class UsersService {
       return new CustomError(500, "Failed to fetch paid counts");
     }
   }
-  // ✅ Status Update (Online/Offline)
+
   async updateStatus(phoneNumber: string, statusDto: UpdateStatusDto) {
     try {
       const user = await this.userModel.findOneAndUpdate({ phoneNumber }, statusDto, { new: true });
@@ -279,6 +295,25 @@ export class UsersService {
     } catch {
       return id;
     }
+  }
+
+  private async sendResetEmail(to: string, name: string, resetLink: string) {
+
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM || `"No Reply" <no-reply@example.com>`,
+      to,
+      subject: 'Reset your password',
+      html: `
+      <p>Hi ${name},</p>
+      <p>We received a request to reset your password. Click the link below to set a new password. This link expires in 1 hour.</p>
+      <p><a href="${resetLink}">Reset password</a></p>
+      <p>If you did not request this, you can safely ignore this email.</p>
+    `,
+    };
+    console.log('hidien', mailOptions)
+    await this.transporter.sendMail(mailOptions);
+
   }
 
 
@@ -471,10 +506,87 @@ export class UsersService {
   }
 
 
+  // Helper to hash token for storage
+  private hashTokenRaw(token: string) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
 
+  // create reset token, save hashed token and expiry, send email with plain token link
+  async createPasswordResetLink(email: string): Promise<CustomResponse> {
+    try {
+      if (!email) throw new CustomError(400, 'Email required');
+
+      const user = await this.userModel.findOne({ email }).select('+email +mobile +name');
+
+      if (!user) {
+        // do not reveal user existence — still return success message
+        return new CustomResponse(200, 'User Not Exits!');
+      }
+
+      // Generate token (plain) and hashed version for DB
+      const rawToken = crypto.randomBytes(32).toString('hex'); // 64 chars
+      const tokenHash = this.hashTokenRaw(rawToken);
+      const expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hour expiry
+
+      // Save hashed token + expiry on user
+      user.passwordResetTokenHash = tokenHash;
+      user.passwordResetTokenExpires = expires;
+      await user.save();
+
+      // Build reset link — FRONTEND_RESET_URL should be like https://app.example.com/reset-password
+      const frontendUrl = process.env.FRONTEND_RESET_URL || 'http://localhost:5173/reset-password';
+      const resetLink = `${frontendUrl}?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
+
+      // Send email
+
+      const check = await this.sendResetEmail(user.email, user.name || user.email, resetLink);
+      console.log('check', check)
+
+      return new CustomResponse(200, 'Password reset email sent successfully.');
+    } catch (err) {
+      this.logger.error('createPasswordResetLink err', err);
+      if (err instanceof CustomError) throw err;
+      throw new CustomError(500, 'Failed to create reset link');
+    }
+  }
+
+
+
+  // verify token and set new password
+  async resetPassword(token: string, email: string, newPassword: string): Promise<CustomResponse> {
+    try {
+      if (!token || !newPassword) throw new CustomError(400, 'Token and newPassword are required');
+
+      const tokenHash = this.hashTokenRaw(token);
+      // const check ='b4541f74390e95c84b26b92a959a7b9c117abbcfff26d9b1b72264aa41fc2585';
+      // console.log('otkne',tokenHash)
+      // find user with this token hash and not expired
+      const user = await this.userModel
+        .findOne({
+          passwordResetTokenHash: tokenHash,
+          passwordResetTokenExpires: { $gt: new Date() },
+        })
+        .select('+passwordHash +passwordResetTokenHash +passwordResetTokenExpires');
+      // console.log(user,'user')
+      if (!user) throw new CustomError(400, 'Invalid or expired token');
+
+      // set new password
+      user.passwordHash = await this.hash(newPassword);
+
+      // remove reset token fields
+      user.passwordResetTokenHash = null;
+      user.passwordResetTokenExpires = null;
+
+      await user.save();
+
+      return new CustomResponse(200, 'Password reset successful.');
+    } catch (err) {
+      this.logger.error('resetPassword err', err);
+      if (err instanceof CustomError) throw err;
+      throw new CustomError(500, 'Failed to reset password');
+    }
+  }
 }
-
-/** Helper: reduce order object to safe summary to return in API */
 function summarizeOrder(o: any) {
   return {
     _id: (o._id && String(o._id)) || null,
@@ -486,6 +598,8 @@ function summarizeOrder(o: any) {
     createdAt: o.createdAt || null,
     updatedAt: o.updatedAt || null,
   };
+
+
 }
 
 

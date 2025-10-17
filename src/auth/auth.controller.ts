@@ -1,14 +1,20 @@
-import { Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
+import { Body, Controller,HttpCode, Post, UseGuards, Get, Param, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from 'src/common/decorators/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UsersService } from 'src/users/users.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) { }
+  constructor(private readonly auth: AuthService,
+
+    private readonly usersService: UsersService
+  ) { }
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
@@ -40,4 +46,23 @@ export class AuthController {
   logout(@CurrentUser('userId') userId: string) {
     return this.auth.logout(userId);
   }
+
+   @Post('forgot-password')
+  @HttpCode(200)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    // returns 200 even if email not found to avoid user enumeration
+    return this.usersService.createPasswordResetLink(dto.email);
+  }
+
+ @Post('reset-password')
+async resetPassword(
+  @Query('token') token: string,
+  @Query('email') email: string,
+  @Body() body: ResetPasswordDto,
+) {
+  const { newPassword } = body;
+  return this.usersService.resetPassword(token, email, newPassword );
+}
+
+
 }

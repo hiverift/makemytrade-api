@@ -9,7 +9,7 @@ export class User {
   email!: string;
 
   @Prop({ type: String, required: true, unique: true, trim: true })
-  mobile!: string;   
+  mobile!: string;
 
   @Prop({ type: String, required: true })
   name!: string;
@@ -27,24 +27,33 @@ export class User {
   refreshTokenHash!: string | null;
   @Prop({ enum: ['active', 'expired', 'cancelled'], default: 'active' })
   status: string;
-   
-   @Prop({ default: false })
+
+  @Prop({ default: false })
   onlineStatus: boolean;
-  
+
   @Prop({ default: true })
   profileStatus: boolean;
-  
+
   @Prop({ default: Date.now })
   lastSeen: Date;
 
   @Prop({ required: false })
   expiryDate: Date;
 
-  @Prop({required:false})
-  username:string;
+  @Prop({ required: false })
+  username: string;
 
-  @Prop({required:false})
-  profilePicture:string;
+  @Prop({ required: false })
+  profilePicture: string;
+
+  @Prop({ required: false })
+  tokenHash!: string;
+
+  @Prop({ type: String, default: null, select: false })
+  passwordResetTokenHash!: string | null;
+
+  @Prop({ type: Date, default: null })
+  passwordResetTokenExpires!: Date | null;
 
 
 }

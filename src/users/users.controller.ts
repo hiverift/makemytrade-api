@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Patch, Body, Put, Request, Delete, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, Param,HttpCode, Query, Patch, Body, Put, Request, Delete, UseGuards, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/common/decorators/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -71,6 +71,7 @@ export class UsersController {
   async updateStatus(@Param('phoneNumber') phoneNumber: string, @Body() statusDto: UpdateStatusDto) {
     return this.users.updateStatus(phoneNumber, statusDto);
   }
+
 
 
 }

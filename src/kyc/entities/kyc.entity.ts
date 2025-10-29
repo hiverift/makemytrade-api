@@ -28,6 +28,9 @@ export class Kyc {
 
   @Prop()
   remark: string;
+
+  @Prop()
+  approvedAt?:string;
 }
 
 export const KycSchema = SchemaFactory.createForClass(Kyc);

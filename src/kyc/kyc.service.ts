@@ -85,7 +85,67 @@ export class KycService {
       throw new CustomError(500, 'Failed to fetch KYC status');
     }
   }
-async updateKycStatus(
+
+  async listKycs(opts: { page?: number; limit?: number; status?: string; } = {}): Promise<CustomResponse> {
+    try {
+      const page = Math.max(1, opts.page || 1);
+      const limit = Math.max(1, Math.min(100, opts.limit || 20));
+      const filter: any = {};
+      if (opts.status) filter.status = opts.status;
+
+      const skip = (page - 1) * limit;
+      const [items, total] = await Promise.all([
+        this.kycModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean().exec(),
+        this.kycModel.countDocuments(filter).exec(),
+      ]);
+
+      const meta = {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit) || 1,
+      };
+
+      return new CustomResponse(200, 'KYC list fetched successfully', { items, meta });
+    } catch (e) {
+      if (e instanceof CustomError) throw e;
+      throw new CustomError(500, e?.message || 'Failed to fetch KYC list');
+    }
+  }
+
+  async approveKyc(userId: string, remark?: string, approvedBy?: string): Promise<CustomResponse> {
+    try {
+      const kyc = await this.kycModel.findOne({ userId });
+      if (!kyc) {
+        throw new CustomError(404, 'KYC record not found');
+      }
+
+      if (kyc.status === 'verified') {
+        return new CustomResponse(200, 'KYC already approved', kyc);
+      }
+
+      const updates: any = {
+        status: 'verified',
+        approvedAt: new Date(),
+      };
+      console.log(typeof remark === 'string' && remark.trim() !== '')
+      if (typeof remark === 'string' && remark.trim() !== '') updates.remark = remark;
+      if (typeof approvedBy === 'string' && approvedBy.trim() !== '') updates.approvedBy = approvedBy;
+
+      const updated = await this.kycModel.findOneAndUpdate(
+        { userId },
+        { $set: updates },
+        { new: true, runValidators: true },
+      );
+
+      return new CustomResponse(200, 'KYC approved successfully', updated);
+    } catch (e) {
+      if (e instanceof CustomError) throw e;
+      throw new CustomError(500, e?.message || 'Failed to approve KYC');
+    }
+  }
+
+  async updateKycStatus(
     userId: string,
     status?: string,
     remark?: string,

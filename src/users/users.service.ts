@@ -558,9 +558,6 @@ export class UsersService {
       if (!token || !newPassword) throw new CustomError(400, 'Token and newPassword are required');
 
       const tokenHash = this.hashTokenRaw(token);
-      // const check ='b4541f74390e95c84b26b92a959a7b9c117abbcfff26d9b1b72264aa41fc2585';
-      // console.log('otkne',tokenHash)
-      // find user with this token hash and not expired
       const user = await this.userModel
         .findOne({
           passwordResetTokenHash: tokenHash,

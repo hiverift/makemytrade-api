@@ -33,7 +33,7 @@ export class AuthService {
     return { accessToken: access, refreshToken: refresh };
   }
 
-   async register(dto: RegisterDto) {
+  async register(dto: RegisterDto) {
     try {
       const extisMobile = await this.users.findByMobile(dto.mobile);
       if (extisMobile) return new CustomError(403, 'mobile already registered');
@@ -57,43 +57,81 @@ export class AuthService {
 
 
 
-  async login(dto: LoginDto) {
-    try {
-      let user;
+  // async login(dto: LoginDto) {
+  //   try {
+  //     let user;
 
-      if (dto.email) {
-        user = await this.users.findByEmail(dto.email, true);
-      } else if (dto.mobile) {
-        user = await this.users.findByMobile(dto.mobile, true);
-      } else {
-        return new CustomError(400, 'Email or Mobile is required');
-      }
+  //     if (dto.email) {
+  //       user = await this.users.findByEmail(dto.email, true);
+  //     } else if (dto.mobile) {
+  //       user = await this.users.findByMobile(dto.mobile, true);
+  //     } else {
+  //       return new CustomError(400, 'Email or Mobile is required');
+  //     }
 
-      if (!user) return new CustomError(401, 'Invalid credentials');
+  //     if (!user) return new CustomError(401, 'Invalid credentials');
 
-      const isPasswordValid = await this.users.comparePassword(user.email, dto.password);
-      if (!isPasswordValid) return new CustomError(401, 'Invalid credentials');
+  //     const isPasswordValid = await this.users.comparePassword(user.email, dto.password);
+  //     if (!isPasswordValid) return new CustomError(401, 'Invalid credentials');
 
-      if (user.role !== dto.role) {
-        return new CustomError(403, `This account is not a ${dto.role}`);
-      }
+  //     if (user.role !== dto.role) {
+  //       return new CustomError(403, `This account is not a ${dto.role}`);
+  //     }
 
 
-      const tokens = await this.signTokens(user as any);
-      const plain = (user as any).toObject?.() ?? user;
-      delete plain.passwordHash;
-      delete plain.refreshTokenHash;
+  //     const tokens = await this.signTokens(user as any);
+  //     const plain = (user as any).toObject?.() ?? user;
+  //     delete plain.passwordHash;
+  //     delete plain.refreshTokenHash;
 
-      return new CustomResponse(200, `${dto.role} login successful`, {
-        user: plain,
-        ...tokens,
-      });
-    } catch (e) {
-      console.error('Login error:', e);
-      return new CustomError(500, 'Login failed');
+  //     return new CustomResponse(200, `${dto.role} login successful`, {
+  //       user: plain,
+  //       ...tokens,
+  //     });
+  //   } catch (e) {
+  //     console.error('Login error:', e);
+  //     return new CustomError(500, 'Login failed');
+  //   }
+  // }
+
+async login(dto: LoginDto) {
+  try {
+    let user;
+
+    // ✅ Find user by email or mobile
+    if (dto.email) {
+      user = await this.users.findByEmail(dto.email, true);
+    } else if (dto.mobile) {
+      user = await this.users.findByMobile(dto.mobile, true);
+    } else {
+      return new CustomError(400, 'Email or Mobile is required');
     }
-  }
 
+    // ✅ Check user existence
+    if (!user) return new CustomError(401, 'Invalid credentials');
+
+    // ✅ Verify password
+    const isPasswordValid = await this.users.comparePassword(user.email, dto.password);
+    if (!isPasswordValid) return new CustomError(401, 'Invalid credentials');
+
+    // ✅ Generate tokens
+    const tokens = await this.signTokens(user as any);
+
+    // ✅ Remove sensitive info
+    const plain = (user as any).toObject?.() ?? user;
+    delete plain.passwordHash;
+    delete plain.refreshTokenHash;
+
+    // ✅ Success response
+    return new CustomResponse(200, 'Login successful', {
+      user: plain,
+      ...tokens,
+    });
+  } catch (e) {
+    console.error('Login error:', e);
+    return new CustomError(500, 'Login failed');
+  }
+}
 
 
   async refresh(userId: string, refreshToken: string) {

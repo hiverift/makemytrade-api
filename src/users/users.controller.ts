@@ -71,6 +71,7 @@ export class UsersController {
   async updateStatus(@Param('phoneNumber') phoneNumber: string, @Body() statusDto: UpdateStatusDto) {
     return this.users.updateStatus(phoneNumber, statusDto);
   }
+  
 
 
 

@@ -69,7 +69,7 @@ export class CreateWebinarDto {
 
   @IsOptional()
   @IsString()
-googleMeetLink?:string;
+  googleMeetLink?:string;
 
   @IsOptional()
   @IsString()

@@ -138,7 +138,7 @@ async login(dto: LoginDto) {
     try {
       const valid = await this.users.validateRefreshToken(userId, refreshToken);
       if (!valid) return new CustomError(401, 'Invalid refresh token');
-
+      
       const decoded = this.jwt.decode(refreshToken) as any;
       const tokens = await this.signTokens({
         _id: userId,

@@ -3,11 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { CreateContactDto } from './dto/create-contact-dto';
+import { Enquiry,EnquirySchema } from './entities/rrp.schema';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
 import nodemailer from 'nodemailer';
 import { Contact } from './entities/contact.schema';
-
+const RPP_REALTOR_FALLBACK = 'realtoredmontonab@gmail.com';
 @Injectable()
 export class ContactService {
   private transporter: nodemailer.Transporter;
@@ -15,6 +16,7 @@ export class ContactService {
   constructor(
     private configService: ConfigService,
     @InjectModel(Contact.name) private contactModel: Model<Contact>,
+    @InjectModel(Enquiry.name) private enquiryModel: Model<Enquiry>,
   ) {
     // Initialize Nodemailer transporter for Gmail (use App Password if 2FA enabled)
     this.transporter = nodemailer.createTransport({
@@ -91,7 +93,7 @@ ${registration}
 
             <tr><td style="padding:6px 26px 18px 26px;">
               <a href="${firmWebsite}" style="display:inline-block;padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid #c6a15a;color:#0b2340;background:#fff;">Visit Website</a>
-              <a href="tel:${phone.replace(/[^\d+]/g,'')}" style="display:inline-block;margin-left:10px;padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:600;background:#0b2340;color:#fff;">Call: ${phone}</a>
+              <a href="tel:${phone.replace(/[^\d+]/g, '')}" style="display:inline-block;margin-left:10px;padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:600;background:#0b2340;color:#fff;">Call: ${phone}</a>
             </td></tr>
 
             <tr><td style="padding:16px 26px 22px 26px;background:#fbfbfd;border-top:1px solid #eef1f6;color:#5b6168;font-size:13px;">
@@ -120,20 +122,20 @@ ${registration}
 
     return { text, html };
   }
- private buildClientAckEmailHiverift(dto: CreateContactDto) {
-  const { fullName, subject, message } = dto;
+  private buildClientAckEmailHiverift(dto: CreateContactDto) {
+    const { fullName, subject, message } = dto;
 
-  // Environment / config-based values (change these in your env or config service)
-  const companyName = this.configService.get<string>('HIVERIFT_NAME') || 'Hiverift';
-  const companyTagline = this.configService.get<string>('HIVERIFT_TAGLINE') || 'Product & Growth Studio';
-  const companyWebsite = this.configService.get<string>('HIVERIFT_WEBSITE') || 'https://hiverift.com/';
-  const phone = this.configService.get<string>('HIVERIFT_PHONE') || '+91-88-1493-0229';
-  const address = this.configService.get<string>('HIVERIFT_ADDRESS') || 'New Delhi, New Rohtak Rd, Ratan Nagar, Karol Bagh, Delhi, 110005';
-  const logoUrl = this.configService.get<string>('HIVERIFT_LOGO_URL') || 'https://via.placeholder.com/140x40?text=Hiverift';
-  const supportEmail = this.configService.get<string>('HIVERIFT_SUPPORT_EMAIL') || 'support@hiverift.com';
+    // Environment / config-based values (change these in your env or config service)
+    const companyName = this.configService.get<string>('HIVERIFT_NAME') || 'Hiverift';
+    const companyTagline = this.configService.get<string>('HIVERIFT_TAGLINE') || 'Product & Growth Studio';
+    const companyWebsite = this.configService.get<string>('HIVERIFT_WEBSITE') || 'https://hiverift.com/';
+    const phone = this.configService.get<string>('HIVERIFT_PHONE') || '+91-88-1493-0229';
+    const address = this.configService.get<string>('HIVERIFT_ADDRESS') || 'New Delhi, New Rohtak Rd, Ratan Nagar, Karol Bagh, Delhi, 110005';
+    const logoUrl = this.configService.get<string>('HIVERIFT_LOGO_URL') || 'https://via.placeholder.com/140x40?text=Hiverift';
+    const supportEmail = this.configService.get<string>('HIVERIFT_SUPPORT_EMAIL') || 'support@hiverift.com';
 
-  // Plain-text fallback
-  const text = `Dear ${fullName || 'Client'},
+    // Plain-text fallback
+    const text = `Dear ${fullName || 'Client'},
 
 Thank you for contacting ${companyName}.
 
@@ -149,8 +151,8 @@ ${companyWebsite}
 ${address}
 `;
 
-  // HTML acknowledgement (uses escapeHtml for user-provided fields)
-  const html = `
+    // HTML acknowledgement (uses escapeHtml for user-provided fields)
+    const html = `
   <!doctype html>
   <html lang="en">
   <head><meta charset="utf-8"></head>
@@ -188,7 +190,7 @@ ${address}
 
           <tr><td style="padding:6px 26px 18px 26px;">
             <a href="${companyWebsite}" style="display:inline-block;padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid #c6a15a;color:#0b2340;background:#fff;">Visit Hiverift</a>
-            <a href="tel:${phone.replace(/[^\d+]/g,'')}" style="display:inline-block;margin-left:10px;padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:600;background:#0b2340;color:#fff;">Call: ${phone}</a>
+            <a href="tel:${phone.replace(/[^\d+]/g, '')}" style="display:inline-block;margin-left:10px;padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:600;background:#0b2340;color:#fff;">Call: ${phone}</a>
             <a href="mailto:${supportEmail}" style="display:inline-block;margin-left:10px;padding:10px 14px;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid #e1e5ea;color:#0b2340;background:#fff;">Email Support</a>
           </td></tr>
 
@@ -216,8 +218,8 @@ ${address}
   </html>
   `;
 
-  return { text, html };
-}
+    return { text, html };
+  }
 
   /**
    * Build email that will be sent to the CA firm (detailed message from client)
@@ -246,7 +248,7 @@ ${address}
 
     return { text, html };
   }
-   private buildFirmNotificationEmailHiveRift(dto: CreateContactDto) {
+  private buildFirmNotificationEmailHiveRift(dto: CreateContactDto) {
     const { fullName, emailAddress, subject, message } = dto;
 
     const firmName = ' Hiverift Product Solutions';
@@ -359,7 +361,7 @@ ${address}
     }
   }
 
-   async createContactTohiverift(dto: CreateContactDto) {
+  async createContactTohiverift(dto: CreateContactDto) {
     try {
       const { fullName, emailAddress, subject } = dto;
 
@@ -405,4 +407,152 @@ ${address}
       return new CustomError(500, 'Failed to submit contact form');
     }
   }
+// .env me yeh keys rakho (niche list di hai)
+
+
+private buildRppFirmNotificationEmail(enquiryModel: any) {
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    goal,
+    firstHouse,
+    budget,
+    timeline,
+    location,
+    propertyType,
+    additionalInfo,
+  } = enquiryModel;
+
+  const subject = `RightPricePumps enquiry from ${firstName || ''} ${lastName || ''}`;
+
+  const html = `
+    <!doctype html><html><head><meta charset="utf-8"></head>
+    <body style="font-family:Helvetica,Arial,sans-serif;color:#111;">
+      <div style="max-width:700px;padding:18px;border:1px solid #e6e9ec;border-radius:6px;">
+        <h2 style="margin:0 0 8px 0;color:#0b2340;">RightPricePumps — New enquiry</h2>
+        <p>You have a new RightPricePumps enquiry submitted via the website.</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px;border-top:1px solid #f0f0f0;"><strong>First name</strong></td><td style="padding:8px;border-top:1px solid #f0f0f0;">${this.escapeHtml(firstName) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Last name</strong></td><td style="padding:8px;">${this.escapeHtml(lastName) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Email</strong></td><td style="padding:8px;">${this.escapeHtml(email) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Phone</strong></td><td style="padding:8px;">${this.escapeHtml(phone) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Goal</strong></td><td style="padding:8px;">${this.escapeHtml(goal) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>First house?</strong></td><td style="padding:8px;">${this.escapeHtml(firstHouse) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Budget</strong></td><td style="padding:8px;">${this.escapeHtml(budget) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Timeline</strong></td><td style="padding:8px;">${this.escapeHtml(timeline) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Location</strong></td><td style="padding:8px;">${this.escapeHtml(location) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Property type</strong></td><td style="padding:8px;">${this.escapeHtml(propertyType) || '—'}</td></tr>
+          <tr><td style="padding:8px;vertical-align:top;"><strong>Additional info</strong></td><td style="padding:8px;white-space:pre-wrap;">${this.escapeHtml(additionalInfo) || '—'}</td></tr>
+        </table>
+      </div>
+    </body></html>
+  `;
+
+  const text = `
+RightPricePumps enquiry from ${firstName || ''} ${lastName || ''} (${email || '—'})
+
+Phone: ${phone || '—'}
+Goal: ${goal || '—'}
+First house: ${firstHouse || '—'}
+Budget: ${budget || '—'}
+Timeline: ${timeline || '—'}
+Location: ${location || '—'}
+Property type: ${propertyType || '—'}
+
+Additional info:
+${additionalInfo || '—'}
+  `.trim();
+
+  return { subject, text, html };
+}
+
+private buildRppClientAckEmail(enquiryModel: any) {
+  const { firstName } = enquiryModel;
+  const company = this.configService.get<string>('RPP_COMPANY_NAME') || 'RightPricePumps';
+  const support = this.configService.get<string>('RPP_SUPPORT_EMAIL') || 'support@rightpricepumps.example';
+
+  const text = `Dear ${firstName || 'Client'},
+
+Thanks for contacting ${company}. We have received your enquiry and will get back to you shortly.
+
+If urgent, contact: ${support}
+
+Regards,
+${company}
+`;
+
+  const html = `
+  <!doctype html><html><head><meta charset="utf-8"></head>
+  <body style="font-family: Helvetica, Arial, sans-serif;">
+    <div style="max-width:600px;padding:18px;border:1px solid #e6e9ec;border-radius:6px;">
+      <h3>Thanks — we received your enquiry</h3>
+      <p>Dear ${this.escapeHtml(firstName) || 'Client'},</p>
+      <p>Thanks for contacting ${company}. Our team will review your request and reply shortly.</p>
+      <p>If you need immediate help, email <a href="mailto:${support}">${support}</a>.</p>
+    </div>
+  </body></html>
+  `;
+
+  return { text, html };
+}
+
+async createRightPricePumpsContact(enquiryModel: any) {
+  try {
+    // 1) Save with tag
+    const payload = { ...enquiryModel, formType: 'rightpricepumps', createdAt: new Date() };
+    const contact = new this.enquiryModel(payload);
+    await contact.save();
+
+    // 2) Build mail content once
+    const { subject, text: rppText, html: rppHtml } = this.buildRppFirmNotificationEmail(enquiryModel);
+
+    // 3) Resolve recipients from ENV
+    const gmailUser = this.configService.get<string>('GMAIL_USER'); // sender
+    const firmReceiver = this.configService.get<string>('CONTACT_RECEIVER_EMAIL'); // optional
+    const clientReceiver = this.configService.get<string>('RPP_CLIENT_EMAIL');     // your client fixed email
+    const realtorReceiver =
+      this.configService.get<string>('RPP_REALTOR_EMAIL') || RPP_REALTOR_FALLBACK; // defaults to realtoredmontonab@gmail.com
+
+    // 4) Make a unique recipient list
+    const recipientsSet = new Set<string>();
+    if (firmReceiver) recipientsSet.add(firmReceiver);
+    if (clientReceiver) recipientsSet.add(clientReceiver);
+    if (realtorReceiver) recipientsSet.add(realtorReceiver);
+    const recipients: string[] = Array.from(recipientsSet);
+
+    // 5) Send notification to firm + client + realtor
+    await this.transporter.sendMail({
+      from: `"${this.configService.get<string>('FIRM_NAME') || 'RightPricePumps'}" <${gmailUser}>`,
+      to: recipients.join(','),
+      subject,
+      text: rppText,
+      html: rppHtml,
+      replyTo: enquiryModel.email || undefined, // so they can reply to the lead directly
+    });
+    console.log('RPP notification email sent to:', recipients);
+
+    // 6) Acknowledgement to user (if user provided email)
+    if (enquiryModel.email) {
+      const { text: clientText, html: clientHtml } = this.buildRppClientAckEmail(enquiryModel);
+      await this.transporter.sendMail({
+        from: `"${this.configService.get<string>('FIRM_NAME') || 'RightPricePumps'}" <${gmailUser}>`,
+        to: enquiryModel.email,
+        subject: `${this.configService.get<string>('FIRM_NAME') || 'RightPricePumps'} — We received your enquiry`,
+        text: clientText,
+        html: clientHtml,
+      });
+      console.log('RPP acknowledgement emailed to user:', enquiryModel.email);
+    }
+
+    return new CustomResponse(201, 'RightPricePumps enquiry submitted successfully', contact);
+  } catch (e) {
+    console.error('Error submitting RightPricePumps enquiry:', e);
+    return new CustomError(500, 'Failed to submit RightPricePumps enquiry');
+  }
+}
+
+
+
 }

@@ -44,6 +44,15 @@ export class User {
   username: string;
 
   @Prop({ required: false })
+  address: string;
+
+  @Prop({ required: false })
+  city: string;
+
+  @Prop({ required: false })
+  pincode: string;
+
+  @Prop({ required: false })
   profilePicture: string;
 
   @Prop({ required: false })

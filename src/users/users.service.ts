@@ -166,6 +166,26 @@ export class UsersService {
     }
   }
 
+   async updateUser(id: string, dto: UpdateUserDto) {
+    try {
+      const updates: any = {};
+      if (dto.name) updates.name = dto.name;
+      if (dto.mobile) updates.mobile = dto.mobile;
+      if (dto.email) updates.email = dto.email;
+      if (dto.address) updates.address = dto.address;
+      if (dto.city) updates.city = dto.city;
+      if (dto.pincode) updates.pincode = dto.pincode;
+      const user = await this.userModel.findByIdAndUpdate(id, updates, { new: true });
+      if (!user) return new CustomError(404, 'User not found');
+
+      const plain = user.toObject();
+      
+      return new CustomResponse(200, 'User updated successfully', plain);
+    } catch (e) {
+      return new CustomError(500, 'Failed to update user');
+    }
+  }
+
   async remove(id: string) {
     try {
       const res = await this.userModel.findByIdAndDelete(id);

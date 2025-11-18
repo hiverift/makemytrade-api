@@ -39,7 +39,13 @@ export class UsersController {
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.users.update(id, dto);
   }
-
+   
+  @Patch('updateUser/:id')
+  @Roles('admin', 'user')
+   updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.users.updateUser(id, dto);
+  }
+   
   @Delete(':id')
   @Roles('admin', 'user')
   remove(@Param('id') id: string) {

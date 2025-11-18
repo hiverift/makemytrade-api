@@ -5,7 +5,7 @@ import { CreateContactDto } from './dto/create-contact-dto';
 
 @Controller('contact')
 export class ContactController {
-  constructor(private readonly service: ContactService) {}
+  constructor(private readonly service: ContactService) { }
 
   @Post()
   createContact(@Body() dto: CreateContactDto) {
@@ -17,9 +17,9 @@ export class ContactController {
     return this.service.createContactTohiverift(dto);
   }
 
-   @Post('createRightPricePumpsContact')
-  createRightPricePumpsContact(@Body() dto:any) {
-    console.log('dot',dto)
+  @Post('createRightPricePumpsContact')
+  createRightPricePumpsContact(@Body() dto: any) {
+    console.log('dot', dto)
     return this.service.createRightPricePumpsContact(dto);
   }
 

@@ -168,6 +168,10 @@ export class UsersService {
 
    async updateUser(id: string, dto: UpdateUserDto) {
     try {
+      const mobileCheck : any = dto.mobile;
+      console.log('mboile is coming',mobileCheck)
+       const mobie = await this.userModel.findOne({mobile:mobileCheck}).exec();
+      if (!mobie) return new CustomError(409, 'Mobile Exits Allready');
       const updates: any = {};
       if (dto.name) updates.name = dto.name;
       if (dto.mobile) updates.mobile = dto.mobile;
@@ -175,6 +179,7 @@ export class UsersService {
       if (dto.address) updates.address = dto.address;
       if (dto.city) updates.city = dto.city;
       if (dto.pincode) updates.pincode = dto.pincode;
+      
       const user = await this.userModel.findByIdAndUpdate(id, updates, { new: true });
       if (!user) return new CustomError(404, 'User not found');
 

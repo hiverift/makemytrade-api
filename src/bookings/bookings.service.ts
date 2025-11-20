@@ -411,17 +411,13 @@ async bulkCreateSlots(dto: any) {
       // validate
       if (!userId) return new CustomError(400, 'userId is required');
       if (!Types.ObjectId.isValid(userId)) return new CustomError(400, 'Invalid user id');
-
-      // cast to ObjectId to avoid mismatch
       const uid = new Types.ObjectId(userId);
-
+      console.log('uid ',uid)
       const list = await this.bookingModel.find({ userId: uid })
         .populate({ path: 'serviceId', select: 'name durationMinutes price' })
         .populate({ path: 'slotId', select: 'start end' })
         .sort({ createdAt: -1 })
         .lean();
-
-      // helpful info if empty
       if (!list || list.length === 0) {
         this.logger.debug(`myBookings: no bookings found for user ${userId}`);
         return new CustomResponse(200, 'No bookings found', []);
@@ -434,7 +430,39 @@ async bulkCreateSlots(dto: any) {
     }
   }
 
+async getBookingDetails(bookingId: string) {
+  try {
+    if (!bookingId || !isValidObjectId(bookingId)) {
+      return new CustomError(400, 'Invalid booking id');
+    }
 
+    const booking = await this.bookingModel
+      .findById(bookingId)
+      .populate({
+        path: 'serviceId',
+        select: 'name price durationMinutes', // service ka data
+      })
+      .populate({
+        path: 'slotId',
+        select: 'start end capacity seatsLeft', // slot ka time + capacity
+      })
+      // agar booking schema me userId ka ref hai to user bhi populate kara sakte ho
+      // .populate({
+      //   path: 'userId',
+      //   select: 'name email phone',
+      // })
+      .lean();
+
+    if (!booking) {
+      return new CustomError(404, 'Booking not found');
+    }
+
+    return new CustomResponse(200, 'Booking details fetched', booking);
+  } catch (e: any) {
+    this.logger.error('getBookingDetails error', e);
+    return new CustomError(500, e?.message || 'Failed to fetch booking details');
+  }
+}
   // Cancel (before start) — refund flow not implemented
   async cancel(bookingId: string) {
     try {

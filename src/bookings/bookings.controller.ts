@@ -33,6 +33,14 @@ export class BookingsController {
   @Get('bookings/user/:userId')
   my(@Param('userId') userId:string){ return this.svc.myBookings(userId); }
 
+  @Get('bookings/details/:id')
+  bookingDetails(@Param('id') id: string) {
+    return this.svc.getBookingDetails(id);
+  }
+
   @Delete('bookings/cancel-booking/:id')
   cancel(@Param('id') id:string){ return this.svc.cancel(id); }
+   
+
+  
 }

@@ -24,6 +24,8 @@ import { YoutubeModule } from './youtube-tutorial/youtube.module';
 import { MessageModule } from './message/message.module';
 import { GoogleService } from './google/google.service';
 import { GoogleModule } from './google/google.module';
+import { PremiumGroupsModule } from './premium-group/premium-group.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -49,7 +51,9 @@ import { GoogleModule } from './google/google.module';
     OrdersModule,
     YoutubeModule,
     MessageModule,
-    GoogleModule
+    GoogleModule,
+    PremiumGroupsModule,
+    ChatModule
   ],
   providers: [GoogleService],
 })

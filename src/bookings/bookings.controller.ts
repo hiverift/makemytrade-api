@@ -16,6 +16,11 @@ export class BookingsController {
 
   @Post('admin/slots/bulk')
   bulkSlots(@Body() dto: BulkSlotsDto){ return this.svc.bulkCreateSlots(dto); }
+ 
+  @Get('getAllSlots')
+  getAllSlots() {
+    return this.svc.getAllSlots();
+  }
 
   @Patch('admin/slots/:id')
   updateSlot(@Param('id') id: string, @Body() dto: UpdateSlotDto) {

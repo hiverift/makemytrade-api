@@ -502,6 +502,23 @@ export class BookingsService {
     }
   }
 
+    async getAllSlots() {
+    try {
+
+      const slot = await this.slotModel
+        .find()
+        .populate({ path: 'serviceId', select: 'name price durationMinutes' })
+        .lean();
+
+      if (!slot) return new CustomError(404, 'Slot not found');
+
+      return new CustomResponse(200, 'Slot fetched', slot);
+    } catch (e: any) {
+      this.logger.error('getSlotById error', e);
+      return new CustomError(500, e?.message ?? 'Failed to fetch slot');
+    }
+  }
+
   // GET slots by serviceId and date (date = YYYY-MM-DD)
   // imports needed at top of file:
   // import { isValidObjectId, Types } from 'mongoose';

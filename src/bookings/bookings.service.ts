@@ -144,141 +144,141 @@ export class BookingsService {
   //     return new CustomError(500, e?.message ?? 'Bulk slot create failed');
   //   }
   // }
-async bulkCreateSlots(dto: any) {
-  try {
-    // debug raw body & keys
-    this.logger.debug('bulkCreateSlots raw DTO -> ' + JSON.stringify(dto));
-    this.logger.debug('bulkCreateSlots dto keys -> ' + Object.keys(dto).join(','));
+  async bulkCreateSlots(dto: any) {
+    try {
+      // debug raw body & keys
+      this.logger.debug('bulkCreateSlots raw DTO -> ' + JSON.stringify(dto));
+      this.logger.debug('bulkCreateSlots dto keys -> ' + Object.keys(dto).join(','));
 
-    if (!dto || !dto.serviceId) {
-      return new CustomError(400, 'serviceId is required');
-    }
-
-    const service = await this.serviceModel.findById(dto.serviceId).lean();
-    if (!service) return new CustomError(404, 'Service not found');
-
-    // Try many places to find times (robust)
-    let rawTimes = (dto as any).times ?? (dto as any)['times[]'] ?? (dto as any).items?.times ?? undefined;
-
-    // Sometimes when validation/transformation occurs, body may be nested: check req-like shape
-    if (!rawTimes && (dto as any).body) {
-      rawTimes = (dto as any).body.times ?? (dto as any).body['times[]'] ?? undefined;
-    }
-
-    this.logger.debug('bulkCreateSlots rawTimes initial -> ' + JSON.stringify(rawTimes) + ' (type: ' + typeof rawTimes + ')');
-
-    // normalize into string[]
-    let times: string[] = [];
-    if (Array.isArray(rawTimes)) {
-      times = rawTimes.map(String).map(s => s.trim()).filter(Boolean);
-    } else if (typeof rawTimes === 'string') {
-      const raw = rawTimes.trim();
-      // attempt JSON parse
-      try {
-        const parsed = JSON.parse(raw);
-        times = Array.isArray(parsed) ? parsed.map(String).map(s => s.trim()).filter(Boolean) : raw.replace(/^\[|\]$/g, '').split(',').map(s => s.replace(/['"]/g, '').trim()).filter(Boolean);
-      } catch {
-        times = raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+      if (!dto || !dto.serviceId) {
+        return new CustomError(400, 'serviceId is required');
       }
-    } else if (rawTimes == null) {
-      // As a last resort, check keys like times[0], times[1] (form-data sent by some clients)
-      const possibleIndexed: string[] = [];
-      Object.keys(dto).forEach(k => {
-        const m = k.match(/^times\[(\d+)\]$/);
-        if (m) possibleIndexed.push(dto[k]);
-      });
-      if (possibleIndexed.length) {
-        times = possibleIndexed.map(String).map(s => s.trim()).filter(Boolean);
-      } else {
-        // nothing
-        times = [];
+
+      const service = await this.serviceModel.findById(dto.serviceId).lean();
+      if (!service) return new CustomError(404, 'Service not found');
+
+      // Try many places to find times (robust)
+      let rawTimes = (dto as any).times ?? (dto as any)['times[]'] ?? (dto as any).items?.times ?? undefined;
+
+      // Sometimes when validation/transformation occurs, body may be nested: check req-like shape
+      if (!rawTimes && (dto as any).body) {
+        rawTimes = (dto as any).body.times ?? (dto as any).body['times[]'] ?? undefined;
       }
-    } else {
-      // other types => cast
-      times = String(rawTimes).split(',').map((s: string) => s.trim()).filter(Boolean);
-    }
 
-    this.logger.debug('bulkCreateSlots normalized times -> ' + JSON.stringify(times));
+      this.logger.debug('bulkCreateSlots rawTimes initial -> ' + JSON.stringify(rawTimes) + ' (type: ' + typeof rawTimes + ')');
 
-    if (!times.length) return new CustomError(400, 'No times provided (times must be an array or comma-separated string).');
-
-    // parse from/to (expect YYYY-MM-DD or ISO)
-    const fromStr = String(dto.from ?? '').substring(0, 10);
-    const toStr = String(dto.to ?? '').substring(0, 10);
-    // Build fromDate and toDate as UTC dates at start of day to avoid local TZ issues
-    const fromParts = fromStr.split('-').map(Number);
-    const toParts = toStr.split('-').map(Number);
-    if (fromParts.length < 3 || toParts.length < 3) {
-      return new CustomError(400, 'Invalid from/to date (use YYYY-MM-DD or ISO format).');
-    }
-    const fromDate = new Date(Date.UTC(fromParts[0], fromParts[1] - 1, fromParts[2])); // UTC midnight of from
-    const toDate = new Date(Date.UTC(toParts[0], toParts[1] - 1, toParts[2])); // UTC midnight of to
-
-    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-      return new CustomError(400, 'Invalid from/to date (use YYYY-MM-DD or ISO format).');
-    }
-    if (fromDate.getTime() > toDate.getTime()) {
-      return new CustomError(400, '"from" must be before or same as "to".');
-    }
-
-    // IST offset to apply when converting desired IST HH:MM to stored UTC
-    const IST_OFFSET_HOURS = 5;
-    const IST_OFFSET_MINUTES = 30;
-
-    // build docs
-    const docs: any[] = [];
-    const serviceDuration = Number(service.durationMinutes) || 60;
-
-    // iterate day-by-day using UTC date values to avoid local TZ shifts
-    for (let d = new Date(fromDate.getTime()); d.getTime() <= toDate.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
-      const year = d.getUTCFullYear();
-      const monthIndex = d.getUTCMonth(); // 0-based
-      const dayOfMonth = d.getUTCDate();
-
-      for (const t of times) {
-        // support formats like "HH:MM" or "H:MM" or "HH" or "HH:MM:SS"
-        const parts = String(t).split(':').map(p => Number(p));
-        const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
-        const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
-
-        // Calculate the UTC milliseconds that correspond to the desired IST time on this date.
-        // IST time -> UTC = IST - 5:30
-        // Date.UTC will handle day rollovers (if hour/min go negative or exceed 24)
-        const startUtcMillis = Date.UTC(
-          year,
-          monthIndex,
-          dayOfMonth,
-          hh - IST_OFFSET_HOURS,
-          mm - IST_OFFSET_MINUTES,
-          0,
-          0
-        );
-
-        const start = new Date(startUtcMillis); // this is a Date object representing correct UTC moment
-        const end = new Date(start.getTime() + serviceDuration * 60000);
-
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
-
-        docs.push({
-          serviceId: new Types.ObjectId(dto.serviceId),
-          start,
-          end,
-          capacity: dto.capacity ?? 1,
-          seatsLeft: dto.capacity ?? 1,
-          active: true,
+      // normalize into string[]
+      let times: string[] = [];
+      if (Array.isArray(rawTimes)) {
+        times = rawTimes.map(String).map(s => s.trim()).filter(Boolean);
+      } else if (typeof rawTimes === 'string') {
+        const raw = rawTimes.trim();
+        // attempt JSON parse
+        try {
+          const parsed = JSON.parse(raw);
+          times = Array.isArray(parsed) ? parsed.map(String).map(s => s.trim()).filter(Boolean) : raw.replace(/^\[|\]$/g, '').split(',').map(s => s.replace(/['"]/g, '').trim()).filter(Boolean);
+        } catch {
+          times = raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+      } else if (rawTimes == null) {
+        // As a last resort, check keys like times[0], times[1] (form-data sent by some clients)
+        const possibleIndexed: string[] = [];
+        Object.keys(dto).forEach(k => {
+          const m = k.match(/^times\[(\d+)\]$/);
+          if (m) possibleIndexed.push(dto[k]);
         });
+        if (possibleIndexed.length) {
+          times = possibleIndexed.map(String).map(s => s.trim()).filter(Boolean);
+        } else {
+          // nothing
+          times = [];
+        }
+      } else {
+        // other types => cast
+        times = String(rawTimes).split(',').map((s: string) => s.trim()).filter(Boolean);
       }
+
+      this.logger.debug('bulkCreateSlots normalized times -> ' + JSON.stringify(times));
+
+      if (!times.length) return new CustomError(400, 'No times provided (times must be an array or comma-separated string).');
+
+      // parse from/to (expect YYYY-MM-DD or ISO)
+      const fromStr = String(dto.from ?? '').substring(0, 10);
+      const toStr = String(dto.to ?? '').substring(0, 10);
+      // Build fromDate and toDate as UTC dates at start of day to avoid local TZ issues
+      const fromParts = fromStr.split('-').map(Number);
+      const toParts = toStr.split('-').map(Number);
+      if (fromParts.length < 3 || toParts.length < 3) {
+        return new CustomError(400, 'Invalid from/to date (use YYYY-MM-DD or ISO format).');
+      }
+      const fromDate = new Date(Date.UTC(fromParts[0], fromParts[1] - 1, fromParts[2])); // UTC midnight of from
+      const toDate = new Date(Date.UTC(toParts[0], toParts[1] - 1, toParts[2])); // UTC midnight of to
+
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        return new CustomError(400, 'Invalid from/to date (use YYYY-MM-DD or ISO format).');
+      }
+      if (fromDate.getTime() > toDate.getTime()) {
+        return new CustomError(400, '"from" must be before or same as "to".');
+      }
+
+      // IST offset to apply when converting desired IST HH:MM to stored UTC
+      const IST_OFFSET_HOURS = 5;
+      const IST_OFFSET_MINUTES = 30;
+
+      // build docs
+      const docs: any[] = [];
+      const serviceDuration = Number(service.durationMinutes) || 60;
+
+      // iterate day-by-day using UTC date values to avoid local TZ shifts
+      for (let d = new Date(fromDate.getTime()); d.getTime() <= toDate.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
+        const year = d.getUTCFullYear();
+        const monthIndex = d.getUTCMonth(); // 0-based
+        const dayOfMonth = d.getUTCDate();
+
+        for (const t of times) {
+          // support formats like "HH:MM" or "H:MM" or "HH" or "HH:MM:SS"
+          const parts = String(t).split(':').map(p => Number(p));
+          const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+          const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+
+          // Calculate the UTC milliseconds that correspond to the desired IST time on this date.
+          // IST time -> UTC = IST - 5:30
+          // Date.UTC will handle day rollovers (if hour/min go negative or exceed 24)
+          const startUtcMillis = Date.UTC(
+            year,
+            monthIndex,
+            dayOfMonth,
+            hh - IST_OFFSET_HOURS,
+            mm - IST_OFFSET_MINUTES,
+            0,
+            0
+          );
+
+          const start = new Date(startUtcMillis); // this is a Date object representing correct UTC moment
+          const end = new Date(start.getTime() + serviceDuration * 60000);
+
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
+
+          docs.push({
+            serviceId: new Types.ObjectId(dto.serviceId),
+            start,
+            end,
+            capacity: dto.capacity ?? 1,
+            seatsLeft: dto.capacity ?? 1,
+            active: true,
+          });
+        }
+      }
+
+      if (!docs.length) return new CustomError(400, 'No slots generated. Check date range and times.');
+
+      await this.slotModel.insertMany(docs);
+      return new CustomResponse(201, 'Slots created', { count: docs.length });
+    } catch (e: any) {
+      this.logger.error('bulkCreateSlots error', e);
+      return new CustomError(500, e?.message ?? 'Bulk slot create failed');
     }
-
-    if (!docs.length) return new CustomError(400, 'No slots generated. Check date range and times.');
-
-    await this.slotModel.insertMany(docs);
-    return new CustomResponse(201, 'Slots created', { count: docs.length });
-  } catch (e: any) {
-    this.logger.error('bulkCreateSlots error', e);
-    return new CustomError(500, e?.message ?? 'Bulk slot create failed');
   }
-}
 
 
 
@@ -412,7 +412,7 @@ async bulkCreateSlots(dto: any) {
       if (!userId) return new CustomError(400, 'userId is required');
       if (!Types.ObjectId.isValid(userId)) return new CustomError(400, 'Invalid user id');
       const uid = new Types.ObjectId(userId);
-      console.log('uid ',uid)
+      console.log('uid ', uid)
       const list = await this.bookingModel.find({ userId: uid })
         .populate({ path: 'serviceId', select: 'name durationMinutes price' })
         .populate({ path: 'slotId', select: 'start end' })
@@ -430,39 +430,39 @@ async bulkCreateSlots(dto: any) {
     }
   }
 
-async getBookingDetails(bookingId: string) {
-  try {
-    if (!bookingId || !isValidObjectId(bookingId)) {
-      return new CustomError(400, 'Invalid booking id');
+  async getBookingDetails(bookingId: string) {
+    try {
+      if (!bookingId || !isValidObjectId(bookingId)) {
+        return new CustomError(400, 'Invalid booking id');
+      }
+
+      const booking = await this.bookingModel
+        .findById(bookingId)
+        .populate({
+          path: 'serviceId',
+          select: 'name price durationMinutes', // service ka data
+        })
+        .populate({
+          path: 'slotId',
+          select: 'start end capacity seatsLeft', // slot ka time + capacity
+        })
+        // agar booking schema me userId ka ref hai to user bhi populate kara sakte ho
+        // .populate({
+        //   path: 'userId',
+        //   select: 'name email phone',
+        // })
+        .lean();
+
+      if (!booking) {
+        return new CustomError(404, 'Booking not found');
+      }
+
+      return new CustomResponse(200, 'Booking details fetched', booking);
+    } catch (e: any) {
+      this.logger.error('getBookingDetails error', e);
+      return new CustomError(500, e?.message || 'Failed to fetch booking details');
     }
-
-    const booking = await this.bookingModel
-      .findById(bookingId)
-      .populate({
-        path: 'serviceId',
-        select: 'name price durationMinutes', // service ka data
-      })
-      .populate({
-        path: 'slotId',
-        select: 'start end capacity seatsLeft', // slot ka time + capacity
-      })
-      // agar booking schema me userId ka ref hai to user bhi populate kara sakte ho
-      // .populate({
-      //   path: 'userId',
-      //   select: 'name email phone',
-      // })
-      .lean();
-
-    if (!booking) {
-      return new CustomError(404, 'Booking not found');
-    }
-
-    return new CustomResponse(200, 'Booking details fetched', booking);
-  } catch (e: any) {
-    this.logger.error('getBookingDetails error', e);
-    return new CustomError(500, e?.message || 'Failed to fetch booking details');
   }
-}
   // Cancel (before start) — refund flow not implemented
   async cancel(bookingId: string) {
     try {
@@ -508,7 +508,7 @@ async getBookingDetails(bookingId: string) {
   async findById(id: string) {
 
     try {
-       console.log('id',id)
+      console.log('id', id)
       const subs = await this.bookingModel.findById(id);
       return new CustomResponse(200, 'All appoinment fetched successfully', subs);
     } catch (e) {
@@ -516,6 +516,64 @@ async getBookingDetails(bookingId: string) {
     }
 
 
+  }
+
+  async updateSlot(id: string, dto: any) {
+    try {
+      if (!id || !isValidObjectId(id)) {
+        return new CustomError(400, 'Invalid slot ID');
+      }
+
+      const slot = await this.slotModel.findById(id);
+      if (!slot) return new CustomError(404, 'Slot not found');
+
+      // capacity change handle karo (booked seats preserve karke)
+      if (dto.capacity != null && dto.capacity !== undefined) {
+        const newCap = Number(dto.capacity);
+        if (isNaN(newCap) || newCap <= 0) {
+          return new CustomError(400, 'Capacity must be a positive number');
+        }
+
+        const bookedSeats = slot.capacity - slot.seatsLeft;
+        if (newCap < bookedSeats) {
+          return new CustomError(
+            400,
+            `Capacity cannot be less than already booked seats (${bookedSeats})`,
+          );
+        }
+
+        slot.capacity = newCap;
+        slot.seatsLeft = newCap - bookedSeats;
+      }
+
+      // start / end update (same pattern as createSlot)
+      if (dto.start) {
+        const s = new Date(String(dto.start).replace(' ', 'T'));
+        if (isNaN(s.getTime())) {
+          return new CustomError(400, 'Invalid start datetime');
+        }
+        slot.start = s;
+      }
+
+      if (dto.end) {
+        const e = new Date(String(dto.end).replace(' ', 'T'));
+        if (isNaN(e.getTime())) {
+          return new CustomError(400, 'Invalid end datetime');
+        }
+        slot.end = e;
+      }
+
+      // active flag
+      if (dto.active !== undefined) {
+        slot.active = !!dto.active;
+      }
+
+      await slot.save();
+      return new CustomResponse(200, 'Slot updated', slot.toObject());
+    } catch (e: any) {
+      this.logger.error('updateSlot error', e);
+      return new CustomError(500, e?.message ?? 'Failed to update slot');
+    }
   }
   async getSlotsByServiceAndDate(serviceId: string, dateStr?: string) {
     try {
@@ -569,6 +627,33 @@ async getBookingDetails(bookingId: string) {
     } catch (e: any) {
       this.logger.error('getSlotsByServiceAndDate error', e);
       return new CustomError(500, e?.message ?? 'Failed to fetch slots');
+    }
+  }
+
+  async deleteSlot(id: string) {
+    try {
+      if (!id || !isValidObjectId(id)) {
+        return new CustomError(400, 'Invalid slot ID');
+      }
+
+      const slot = await this.slotModel.findById(id);
+      if (!slot) return new CustomError(404, 'Slot not found');
+
+      // option: check if any bookings exist on this slot
+      const hasBookings = await this.bookingModel.exists({ slotId: slot._id });
+      if (hasBookings) {
+        return new CustomError(
+          400,
+          'Cannot delete slot that has bookings. Please cancel bookings first.',
+        );
+      }
+
+      await this.slotModel.deleteOne({ _id: slot._id });
+
+      return new CustomResponse(200, 'Slot deleted', { deleted: true });
+    } catch (e: any) {
+      this.logger.error('deleteSlot error', e);
+      return new CustomError(500, e?.message ?? 'Failed to delete slot');
     }
   }
 

@@ -15,6 +15,9 @@ export class Booking extends Document {
   @Prop({ type: String })
   paymentRef?: string;
 
+   @Prop()
+  googleMeetLink?:string;
+
   @Prop({ type: String } )
   itemType?: string;
 

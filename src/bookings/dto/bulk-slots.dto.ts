@@ -11,6 +11,8 @@ export class BulkSlotsDto {
   @IsDateString()
   to: string;
 
+ @IsOptional()
+  googleMeetLink?: string;
   @Type(() => Number)
   @IsInt()
   @Min(1)

@@ -264,6 +264,7 @@ export class BookingsService {
             serviceId: new Types.ObjectId(dto.serviceId),
             start,
             end,
+            googleMeetLink: dto.googleMeetLink ?? 'https://meet.google.com/xyz-abc-def',
             capacity: dto.capacity ?? 1,
             seatsLeft: dto.capacity ?? 1,
             active: true,

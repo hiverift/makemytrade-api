@@ -227,7 +227,7 @@ export class PremiumGroupsService {
         groupId: new Types.ObjectId(groupId),
         expiresAt: { $gt: now },
       });
-
+      console.log('Access check   :', record);
       if (!record) return { hasAccess: false };
       return { hasAccess: true, expiresAt: record.expiresAt };
     } catch (error) {

@@ -18,6 +18,7 @@ import { Logger } from '@nestjs/common';
 import { use } from 'passport';
 import nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
+import { Slot } from 'src/bookings/entities/slot.schema';
 
 
 
@@ -49,7 +50,8 @@ export class UsersService {
     @InjectModel(Webinar.name) private webinarModel: Model<Webinar>,
     @InjectModel(Course.name) private courseModel: Model<Course>,
     @InjectModel(Booking.name) private bookingModel: Model<Booking>,
-    @InjectModel(Order.name) private orderModel: Model<OrderDocument>
+    @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+    @InjectModel(Slot.name) private slotModel: Model<Slot>
 
 
   ) {
@@ -345,152 +347,371 @@ export class UsersService {
 
   // --- Replace existing getAssets with this full-version (returns ALL orders per item) ---
 
-  async getAssets(userId: string, limit = 50, skip = 0): Promise<CustomResponse> {
-    try {
-      if (!userId) throw new CustomError(400, 'userId required');
+  // async getAssets(userId: string, limit = 50, skip = 0): Promise<CustomResponse> {
+  //   try {
+  //     if (!userId) throw new CustomError(400, 'userId required');
 
-      // Accept both ObjectId and string-stored userId in orders collection
-      const userIdMatches = Types.ObjectId.isValid(userId)
-        ? [{ userId: new Types.ObjectId(userId) }, { userId: userId }]
-        : [{ userId }];
+  //     // Accept both ObjectId and string-stored userId in orders collection
+  //     const userIdMatches = Types.ObjectId.isValid(userId)
+  //       ? [{ userId: new Types.ObjectId(userId) }, { userId: userId }]
+  //       : [{ userId }];
 
-      this.logger.debug(`getAssets (all-orders): userId=${userId}`);
+  //     this.logger.debug(`getAssets (all-orders): userId=${userId}`);
 
-      // Fetch all orders for this user (use limit/skip if you want paging)
-      const orders = (await this.orderModel
-        .find({ $or: userIdMatches })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec()) as OrderDoc[];
+  //     // Fetch all orders for this user (use limit/skip if you want paging)
+  //     const orders = (await this.orderModel
+  //       .find({ $or: userIdMatches })
+  //       .sort({ createdAt: -1 })
+  //       .skip(skip)
+  //       .limit(limit)
+  //       .lean()
+  //       .exec()) as OrderDoc[];
 
-      this.logger.debug(`Orders fetched count=${orders?.length ?? 0}`);
+  //     this.logger.debug(`Orders fetched count=${orders?.length ?? 0}`);
 
-      // Group orders per item: maps of itemIdString -> OrderDoc[]
-      const courseOrdersMap = new Map<string, OrderDoc[]>();
-      const webinarOrdersMap = new Map<string, OrderDoc[]>();
-      const appointmentOrdersMap = new Map<string, OrderDoc[]>();
+  //     // Group orders per item: maps of itemIdString -> OrderDoc[]
+  //     const courseOrdersMap = new Map<string, OrderDoc[]>();
+  //     const webinarOrdersMap = new Map<string, OrderDoc[]>();
+  //     const appointmentOrdersMap = new Map<string, OrderDoc[]>();
 
-      for (const o of orders || []) {
-        // course
-        const courseKey = this.idToString(o.courseId);
-        if (courseKey) {
-          const arr = courseOrdersMap.get(courseKey) ?? [];
-          arr.push(o);
-          courseOrdersMap.set(courseKey, arr);
-        }
-        // webinar
-        const webinarKey = this.idToString(o.webinarId);
-        if (webinarKey) {
-          const arr = webinarOrdersMap.get(webinarKey) ?? [];
-          arr.push(o);
-          webinarOrdersMap.set(webinarKey, arr);
-        }
-        // appointment
-        const appointmentKey = this.idToString(o.appointmentId);
-        if (appointmentKey) {
-          const arr = appointmentOrdersMap.get(appointmentKey) ?? [];
-          arr.push(o);
-          appointmentOrdersMap.set(appointmentKey, arr);
-        }
+  //     for (const o of orders || []) {
+  //       // course
+  //       const courseKey = this.idToString(o.courseId);
+  //       if (courseKey) {
+  //         const arr = courseOrdersMap.get(courseKey) ?? [];
+  //         arr.push(o);
+  //         courseOrdersMap.set(courseKey, arr);
+  //       }
+  //       // webinar
+  //       const webinarKey = this.idToString(o.webinarId);
+  //       if (webinarKey) {
+  //         const arr = webinarOrdersMap.get(webinarKey) ?? [];
+  //         arr.push(o);
+  //         webinarOrdersMap.set(webinarKey, arr);
+  //       }
+  //       // appointment
+  //       const appointmentKey = this.idToString(o.appointmentId);
+  //       if (appointmentKey) {
+  //         const arr = appointmentOrdersMap.get(appointmentKey) ?? [];
+  //         arr.push(o);
+  //         appointmentOrdersMap.set(appointmentKey, arr);
+  //       }
+  //     }
+
+  //     this.logger.debug(
+  //       `Grouped sizes -> courses:${courseOrdersMap.size}, webinars:${webinarOrdersMap.size}, appointments:${appointmentOrdersMap.size}`
+  //     );
+
+  //     // Prepare id arrays to fetch details
+  //     const courseIds = Array.from(courseOrdersMap.keys()).map((id) => this.toObjectIdIfValid(id));
+  //     const webinarIds = Array.from(webinarOrdersMap.keys()).map((id) => this.toObjectIdIfValid(id));
+  //     const appointmentIds = Array.from(appointmentOrdersMap.keys()).map((id) => this.toObjectIdIfValid(id));
+
+  //     this.logger.debug(`Resolved ids lengths -> courses:${courseIds.length}, webinars:${webinarIds.length}, appointments:${appointmentIds.length}`);
+
+  //     const [courses, webinars, appointments] = await Promise.all([
+  //       courseIds.length ? this.courseModel.find({ _id: { $in: courseIds } }).lean().exec() : Promise.resolve([]),
+  //       webinarIds.length ? this.webinarModel.find({ _id: { $in: webinarIds } }).lean().exec() : Promise.resolve([]),
+  //       appointmentIds.length ? this.bookingModel.find({ _id: { $in: appointmentIds } }).lean().exec() : Promise.resolve([]),
+  //     ]);
+
+  //     this.logger.debug(`Fetched docs -> courses:${(courses || []).length}, webinars:${(webinars || []).length}, appointments:${(appointments || []).length}`);
+
+  //     // Build results: include all orders (summarized) per item and mark paid if any order paid
+  //     const coursesResult = (courses || []).map((c: any) => {
+  //       const id = this.idToString(c._id) ?? String(c._id);
+  //       const ordersForItem = courseOrdersMap.get(id) ?? [];
+  //       const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
+  //       const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
+  //       return {
+  //         itemType: 'course',
+  //         itemId: id,
+  //         details: c,
+  //         paid,
+  //         orders: ordersSumm,
+  //       };
+  //     });
+
+  //     const webinarsResult = (webinars || []).map((w: any) => {
+  //       const id = this.idToString(w._id) ?? String(w._id);
+  //       const ordersForItem = webinarOrdersMap.get(id) ?? [];
+
+  //       const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
+  //       const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
+  //       return {
+  //         itemType: 'webinar',
+  //         itemId: id,
+  //         details: w,
+  //         paid,
+  //         orders: ordersSumm,
+  //       };
+  //     });
+
+  //     const appointmentsResult = (appointments || []).map((a: any) => {
+  //       const id = this.idToString(a._id) ?? String(a._id);
+  //       const ordersForItem = appointmentOrdersMap.get(id) ?? [];
+  //       const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
+  //       const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
+
+  //       return {
+  //         itemType: 'appointment',
+  //         itemId: id,
+  //         details: a,
+  //         paid,
+  //         orders: ordersSumm,
+  //       };
+  //     });
+
+  //     // Also include orphan orders info (orders that reference items that couldn't be found in respective collections)
+  //     const missingCourseKeys = Array.from(courseOrdersMap.keys()).filter(
+  //       (k) => !courses.some((c: any) => this.idToString(c._id) === k)
+  //     );
+  //     const missingWebinarKeys = Array.from(webinarOrdersMap.keys()).filter(
+  //       (k) => !webinars.some((w: any) => this.idToString(w._id) === k)
+  //     );
+  //     const missingAppointmentKeys = Array.from(appointmentOrdersMap.keys()).filter(
+  //       (k) => !appointments.some((a: any) => this.idToString(a._id) === k)
+  //     );
+
+  //     if (missingCourseKeys.length || missingWebinarKeys.length || missingAppointmentKeys.length) {
+  //       this.logger.warn('getAssets: some itemIds have orders but no item document found', {
+  //         missingCourseKeys,
+  //         missingWebinarKeys,
+  //         missingAppointmentKeys,
+  //       });
+  //     }
+
+  //     return new CustomResponse(200, 'User assets fetched (all orders)', {
+  //       courses: coursesResult,
+  //       webinars: webinarsResult,
+  //       appointments: appointmentsResult,
+  //     });
+  //   } catch (err) {
+  //     this.logger.error('getAssets (all-orders) error', err);
+  //     if (err instanceof CustomError) throw err;
+  //     throw new CustomError(500, 'Failed to fetch user assets');
+  //   }
+  // }
+
+async getAssets(userId: string, limit = 50, skip = 0): Promise<CustomResponse> {
+  try {
+    if (!userId) throw new CustomError(400, 'userId required');
+
+    // Accept both ObjectId and string-stored userId in orders collection
+    const userIdMatches = Types.ObjectId.isValid(userId)
+      ? [{ userId: new Types.ObjectId(userId) }, { userId: userId }]
+      : [{ userId }];
+
+    this.logger.debug(`getAssets (all-orders): userId=${userId}`);
+
+    // Fetch all orders for this user (use limit/skip if you want paging)
+    const orders = (await this.orderModel
+      .find({ $or: userIdMatches })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec()) as OrderDoc[];
+
+    this.logger.debug(`Orders fetched count=${orders?.length ?? 0}`);
+
+    // Group orders per item: maps of itemIdString -> OrderDoc[]
+    const courseOrdersMap = new Map<string, OrderDoc[]>();
+    const webinarOrdersMap = new Map<string, OrderDoc[]>();
+    const appointmentOrdersMap = new Map<string, OrderDoc[]>();
+
+    for (const o of orders || []) {
+      // course
+      const courseKey = this.idToString(o.courseId);
+      if (courseKey) {
+        const arr = courseOrdersMap.get(courseKey) ?? [];
+        arr.push(o);
+        courseOrdersMap.set(courseKey, arr);
       }
-
-      this.logger.debug(
-        `Grouped sizes -> courses:${courseOrdersMap.size}, webinars:${webinarOrdersMap.size}, appointments:${appointmentOrdersMap.size}`
-      );
-
-      // Prepare id arrays to fetch details
-      const courseIds = Array.from(courseOrdersMap.keys()).map((id) => this.toObjectIdIfValid(id));
-      const webinarIds = Array.from(webinarOrdersMap.keys()).map((id) => this.toObjectIdIfValid(id));
-      const appointmentIds = Array.from(appointmentOrdersMap.keys()).map((id) => this.toObjectIdIfValid(id));
-
-      this.logger.debug(`Resolved ids lengths -> courses:${courseIds.length}, webinars:${webinarIds.length}, appointments:${appointmentIds.length}`);
-
-      const [courses, webinars, appointments] = await Promise.all([
-        courseIds.length ? this.courseModel.find({ _id: { $in: courseIds } }).lean().exec() : Promise.resolve([]),
-        webinarIds.length ? this.webinarModel.find({ _id: { $in: webinarIds } }).lean().exec() : Promise.resolve([]),
-        appointmentIds.length ? this.bookingModel.find({ _id: { $in: appointmentIds } }).lean().exec() : Promise.resolve([]),
-      ]);
-
-      this.logger.debug(`Fetched docs -> courses:${(courses || []).length}, webinars:${(webinars || []).length}, appointments:${(appointments || []).length}`);
-
-      // Build results: include all orders (summarized) per item and mark paid if any order paid
-      const coursesResult = (courses || []).map((c: any) => {
-        const id = this.idToString(c._id) ?? String(c._id);
-        const ordersForItem = courseOrdersMap.get(id) ?? [];
-        const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
-        const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
-        return {
-          itemType: 'course',
-          itemId: id,
-          details: c,
-          paid,
-          orders: ordersSumm,
-        };
-      });
-
-      const webinarsResult = (webinars || []).map((w: any) => {
-        const id = this.idToString(w._id) ?? String(w._id);
-        const ordersForItem = webinarOrdersMap.get(id) ?? [];
-
-        const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
-        const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
-        return {
-          itemType: 'webinar',
-          itemId: id,
-          details: w,
-          paid,
-          orders: ordersSumm,
-        };
-      });
-
-      const appointmentsResult = (appointments || []).map((a: any) => {
-        const id = this.idToString(a._id) ?? String(a._id);
-        const ordersForItem = appointmentOrdersMap.get(id) ?? [];
-        const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
-        const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
-
-        return {
-          itemType: 'appointment',
-          itemId: id,
-          details: a,
-          paid,
-          orders: ordersSumm,
-        };
-      });
-
-      // Also include orphan orders info (orders that reference items that couldn't be found in respective collections)
-      const missingCourseKeys = Array.from(courseOrdersMap.keys()).filter(
-        (k) => !courses.some((c: any) => this.idToString(c._id) === k)
-      );
-      const missingWebinarKeys = Array.from(webinarOrdersMap.keys()).filter(
-        (k) => !webinars.some((w: any) => this.idToString(w._id) === k)
-      );
-      const missingAppointmentKeys = Array.from(appointmentOrdersMap.keys()).filter(
-        (k) => !appointments.some((a: any) => this.idToString(a._id) === k)
-      );
-
-      if (missingCourseKeys.length || missingWebinarKeys.length || missingAppointmentKeys.length) {
-        this.logger.warn('getAssets: some itemIds have orders but no item document found', {
-          missingCourseKeys,
-          missingWebinarKeys,
-          missingAppointmentKeys,
-        });
+      // webinar
+      const webinarKey = this.idToString(o.webinarId);
+      if (webinarKey) {
+        const arr = webinarOrdersMap.get(webinarKey) ?? [];
+        arr.push(o);
+        webinarOrdersMap.set(webinarKey, arr);
       }
-
-      return new CustomResponse(200, 'User assets fetched (all orders)', {
-        courses: coursesResult,
-        webinars: webinarsResult,
-        appointments: appointmentsResult,
-      });
-    } catch (err) {
-      this.logger.error('getAssets (all-orders) error', err);
-      if (err instanceof CustomError) throw err;
-      throw new CustomError(500, 'Failed to fetch user assets');
+      // appointment
+      const appointmentKey = this.idToString(o.appointmentId);
+      if (appointmentKey) {
+        const arr = appointmentOrdersMap.get(appointmentKey) ?? [];
+        arr.push(o);
+        appointmentOrdersMap.set(appointmentKey, arr);
+      }
     }
-  }
 
+    this.logger.debug(
+      `Grouped sizes -> courses:${courseOrdersMap.size}, webinars:${webinarOrdersMap.size}, appointments:${appointmentOrdersMap.size}`
+    );
+
+    // Prepare id arrays to fetch details
+    const courseIds = Array.from(courseOrdersMap.keys()).map((id) =>
+      this.toObjectIdIfValid(id),
+    );
+    const webinarIds = Array.from(webinarOrdersMap.keys()).map((id) =>
+      this.toObjectIdIfValid(id),
+    );
+    const appointmentIds = Array.from(appointmentOrdersMap.keys()).map((id) =>
+      this.toObjectIdIfValid(id),
+    );
+
+    this.logger.debug(
+      `Resolved ids lengths -> courses:${courseIds.length}, webinars:${webinarIds.length}, appointments:${appointmentIds.length}`,
+    );
+
+    const [courses, webinars, appointments] = await Promise.all([
+      courseIds.length
+        ? this.courseModel.find({ _id: { $in: courseIds } }).lean().exec()
+        : Promise.resolve([]),
+      webinarIds.length
+        ? this.webinarModel.find({ _id: { $in: webinarIds } }).lean().exec()
+        : Promise.resolve([]),
+      appointmentIds.length
+        ? this.bookingModel
+            .find({ _id: { $in: appointmentIds } })
+            // Agar Booking schema me populate use kar rahe ho to yahan bhi kar sakte ho:
+            // .populate('slotId')
+            .lean()
+            .exec()
+        : Promise.resolve([]),
+    ]);
+
+    this.logger.debug(
+      `Fetched docs -> courses:${(courses || []).length}, webinars:${(webinars || []).length}, appointments:${(appointments || []).length}`,
+    );
+
+    // ================= NEW: Fetch slots for appointments =================
+    const appointmentsArr = (appointments || []) as any[];
+
+    // Booking document se slot wala field nikalna
+    const slotIdStrings = Array.from(
+      new Set(
+        appointmentsArr
+          .map((a: any) =>
+            this.idToString(
+              // tumhare schema ke hisaab se inme se jo sahi ho wo use ho jayega
+              a.slotId ?? a.slot?._id ?? a.slot,
+            ),
+          )
+          .filter((id): id is string => !!id),
+      ),
+    );
+
+    const slotIds = slotIdStrings
+      .map((id) => this.toObjectIdIfValid(id))
+      .filter((id): id is Types.ObjectId => !!id);
+
+    let slots: any[] = [];
+    let slotMap = new Map<string, any>();
+    console.log('slotIds', slotIds);
+    if (slotIds.length) {
+      slots = (await this.slotModel
+        .find({ _id: { $in: slotIds } })
+        .lean()
+        .exec()) as any[];
+      console.log('fetched slots', slots);
+      for (const s of slots) {
+        const key = this.idToString(s._id) ?? String(s._id);
+        slotMap.set(key, s);
+      }
+    }
+
+    this.logger.debug(`Fetched slots for appointments: ${slots.length}`);
+    // ================= END NEW =================
+
+    // Build results: include all orders (summarized) per item and mark paid if any order paid
+    const coursesResult = (courses || []).map((c: any) => {
+      const id = this.idToString(c._id) ?? String(c._id);
+      const ordersForItem = courseOrdersMap.get(id) ?? [];
+      const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
+      const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
+      return {
+        itemType: 'course',
+        itemId: id,
+        details: c,
+        paid,
+        orders: ordersSumm,
+      };
+    });
+
+    const webinarsResult = (webinars || []).map((w: any) => {
+      const id = this.idToString(w._id) ?? String(w._id);
+      const ordersForItem = webinarOrdersMap.get(id) ?? [];
+      const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
+      const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
+      return {
+        itemType: 'webinar',
+        itemId: id,
+        details: w,
+        paid,
+        orders: ordersSumm,
+      };
+    });
+
+    const appointmentsResult = appointmentsArr.map((a: any) => {
+      const id = this.idToString(a._id) ?? String(a._id);
+      const ordersForItem = appointmentOrdersMap.get(id) ?? [];
+      const ordersSumm = ordersForItem.map((o) => summarizeOrder(o));
+      const paid = ordersSumm.some((o) => o?.payment?.status === 'captured');
+
+      // Slot ko map se nikalna
+      const slotKey = this.idToString(
+        a.slotId ?? a.slot?._id ?? a.slot,
+      );
+      
+      const slot = slotKey ? slotMap.get(slotKey) : null;
+console.log('slotKey', slot);
+      return {
+        itemType: 'appointment',
+        itemId: id,
+        details: a,
+        // yahan UI ke liye direct slot date bhi de diya
+        // apne Slot schema ke hisaab se field ka naam adjust kar lena
+        slot,
+        slotDate: slot?.date ?? slot?.slotDate ?? slot?.startTime ?? null,
+        paid,
+        orders: ordersSumm,
+      };
+    });
+
+    // Also include orphan orders info (orders that reference items that couldn't be found in respective collections)
+    const missingCourseKeys = Array.from(courseOrdersMap.keys()).filter(
+      (k) => !courses.some((c: any) => this.idToString(c._id) === k),
+    );
+    const missingWebinarKeys = Array.from(webinarOrdersMap.keys()).filter(
+      (k) => !webinars.some((w: any) => this.idToString(w._id) === k),
+    );
+    const missingAppointmentKeys = Array.from(
+      appointmentOrdersMap.keys(),
+    ).filter((k) => !appointmentsArr.some((a: any) => this.idToString(a._id) === k));
+
+    if (
+      missingCourseKeys.length ||
+      missingWebinarKeys.length ||
+      missingAppointmentKeys.length
+    ) {
+      this.logger.warn('getAssets: some itemIds have orders but no item document found', {
+        missingCourseKeys,
+        missingWebinarKeys,
+        missingAppointmentKeys,
+      });
+    }
+
+    return new CustomResponse(200, 'User assets fetched (all orders)', {
+      courses: coursesResult,
+      webinars: webinarsResult,
+      appointments: appointmentsResult,
+    });
+  } catch (err) {
+    this.logger.error('getAssets (all-orders) error', err);
+    if (err instanceof CustomError) throw err;
+    throw new CustomError(500, 'Failed to fetch user assets');
+  }
+}
 
 
 

@@ -9,6 +9,7 @@ import { Course,CourseSchema } from 'src/courses/schemas/course.schema';
 import { Booking,BookingSchema } from 'src/bookings/entities/booking.entity';
 import { Order,OrderSchema } from 'src/order/entities/order.entity';
 import { ForgetPassword, ForgetPasswordSchema } from './entities/password-forgot.entity';
+import { Slot,SlotSchema } from 'src/bookings/entities/slot.schema';
 
 @Module({
  imports: [
@@ -19,6 +20,7 @@ import { ForgetPassword, ForgetPasswordSchema } from './entities/password-forgot
       { name: Course.name, schema: CourseSchema },
       { name: Booking.name, schema: BookingSchema },
       { name: Order.name, schema: OrderSchema },
+      { name: Slot.name, schema: SlotSchema },
     ]),
   ],
   providers: [UsersService],

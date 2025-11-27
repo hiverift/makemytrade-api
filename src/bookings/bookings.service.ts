@@ -29,6 +29,7 @@ export class BookingsService {
       const seatsLeft = dto.capacity ?? 1;
       const slot = await this.slotModel.create({
         serviceId: new Types.ObjectId(dto.serviceId),
+        googleMeetLink: dto.googleMeetLink,
         start: new Date(dto.start.replace(' ', 'T')),
         end: new Date(dto.end.replace(' ', 'T')),
         capacity: seatsLeft,

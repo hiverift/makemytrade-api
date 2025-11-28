@@ -11,7 +11,6 @@ export default {
       uri,
       // you can set dbName here if not included in URI
       dbName: config.get<string>('MONGO_DB') || undefined,
-      // ✅ helpful options
       retryAttempts: 5, // retries on failure
       retryDelay: 3000, // 3s delay between retries
       ssl: true,

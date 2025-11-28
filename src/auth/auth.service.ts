@@ -98,7 +98,7 @@ async login(dto: LoginDto) {
   try {
     let user;
 
-    // ✅ Find user by email or mobile
+    
     if (dto.email) {
       user = await this.users.findByEmail(dto.email, true);
     } else if (dto.mobile) {
@@ -107,22 +107,22 @@ async login(dto: LoginDto) {
       return new CustomError(400, 'Email or Mobile is required');
     }
 
-    // ✅ Check user existence
+    //  Check user existence
     if (!user) return new CustomError(401, 'Invalid credentials');
 
-    // ✅ Verify password
+    //  Verify password
     const isPasswordValid = await this.users.comparePassword(user.email, dto.password);
     if (!isPasswordValid) return new CustomError(401, 'Invalid credentials');
 
-    // ✅ Generate tokens
+    //  Generate tokens
     const tokens = await this.signTokens(user as any);
 
-    // ✅ Remove sensitive info
+    //  Remove sensitive info
     const plain = (user as any).toObject?.() ?? user;
     delete plain.passwordHash;
     delete plain.refreshTokenHash;
 
-    // ✅ Success response
+    //  Success response
     return new CustomResponse(200, 'Login successful', {
       user: plain,
       ...tokens,

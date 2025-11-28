@@ -20,13 +20,12 @@ import { PremiumGroupsService } from 'src/premium-group/premium-group.service';
 
 interface AuthPayload {
   userId: string;
-  // ...tumhara JWT payload jo bhi ho
 }
 
 @WebSocketGateway({
   namespace: 'chat',
   cors: {
-    origin: '*', // production me domain specify karo
+    origin: '*',
   },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -38,25 +37,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
     private readonly premiumGroupsService: PremiumGroupsService,
-  ) {}
+  ) { }
 
   async handleConnection(client: Socket) {
     try {
       // Bearer token headers se/ auth se
+      // console.log('client.handshake', client.handshake);
       const authHeader =
         (client.handshake.headers['authorization'] as string) ||
         (client.handshake.auth?.authorization as string);
-
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (!authHeader || !authHeader.startsWith('Bearer')) {
         this.logger.warn('No auth token, disconnecting');
         client.disconnect();
         return;
       }
 
       const token = authHeader.replace('Bearer ', '').trim();
-      const payload = this.jwtService.verify<AuthPayload>(token);
-      const userId = payload.userId;
 
+      const payload = this.jwtService.verify(token);
+      const userId = payload.sub as string;
+     console.log('WebSocket connected userId=', userId);
       const groupId = client.handshake.query.groupId as string;
       if (!groupId) {
         this.logger.warn('No groupId provided');

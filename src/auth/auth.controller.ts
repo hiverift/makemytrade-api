@@ -28,8 +28,6 @@ export class AuthController {
 
   @Post('refresh')
   refresh(@Body() dto: RefreshDto, @CurrentUser('userId') userId?: string) {
-    // If you want refresh without auth header, parse ID from token instead.
-    // Simpler: expect userId packed in token; we'll decode inside service.
     const decoded: any = undefined;
 
     return this.auth.refresh(decoded?.sub ?? dto.userId ?? '', dto.refreshToken);

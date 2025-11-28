@@ -36,7 +36,7 @@ export class Course extends Document {
   @Prop()
   image: string;
 
- @Prop()
+  @Prop()
   googleMeetLink?:string;
 
   @Prop({ required: true })

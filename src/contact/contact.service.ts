@@ -8,6 +8,8 @@ import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
 import nodemailer from 'nodemailer';
 import { Contact } from './entities/contact.schema';
+import { DevineAutomationEnquiry } from './entities/devine-automatin.schema';
+import { DevineAutomationContactDto } from './dto/devine-contact-dto';
 const RPP_REALTOR_FALLBACK = 'realtoredmontonab@gmail.com';
 @Injectable()
 export class ContactService {
@@ -17,6 +19,8 @@ export class ContactService {
     private configService: ConfigService,
     @InjectModel(Contact.name) private contactModel: Model<Contact>,
     @InjectModel(Enquiry.name) private enquiryModel: Model<Enquiry>,
+     @InjectModel(DevineAutomationEnquiry.name)
+  private devineAutomationModel: Model<DevineAutomationEnquiry>,
   ) {
     // Initialize Nodemailer transporter for Gmail (use App Password if 2FA enabled)
     this.transporter = nodemailer.createTransport({
@@ -552,6 +556,172 @@ export class ContactService {
       return new CustomError(500, 'Failed to submit RightPricePumps enquiry');
     }
   }
+
+  private buildDevineAutomationFirmNotificationEmail(dto: DevineAutomationContactDto) {
+  const { fullName, emailAddress, phoneNumber, companyName, subject, message, serviceInterest } = dto;
+
+  const company =
+    this.configService.get<string>('DEVINE_NAME') || 'Divine Automation';
+  const html = `
+    <!doctype html><html><head><meta charset="utf-8"></head>
+    <body style="font-family:Helvetica,Arial,sans-serif;color:#111;">
+      <div style="max-width:700px;padding:18px;border:1px solid #e6e9ec;border-radius:6px;">
+        <h2 style="margin:0 0 8px 0;color:#0b2340;">${this.escapeHtml(company)} — New lead</h2>
+        <p style="margin:0 0 10px 0;">You have received a new enquiry via the Divine Automation contact form.</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px;border-top:1px solid #f0f0f0;"><strong>Full name</strong></td><td style="padding:8px;border-top:1px solid #f0f0f0;">${this.escapeHtml(fullName) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Company</strong></td><td style="padding:8px;">${this.escapeHtml(companyName) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Email</strong></td><td style="padding:8px;">${this.escapeHtml(emailAddress) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Phone</strong></td><td style="padding:8px;">${this.escapeHtml(phoneNumber) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Service interest</strong></td><td style="padding:8px;">${this.escapeHtml(serviceInterest) || '—'}</td></tr>
+          <tr><td style="padding:8px;"><strong>Subject</strong></td><td style="padding:8px;">${this.escapeHtml(subject) || '—'}</td></tr>
+          <tr><td style="padding:8px;vertical-align:top;"><strong>Message</strong></td><td style="padding:8px;white-space:pre-wrap;">${this.escapeHtml(message) || '—'}</td></tr>
+        </table>
+        <p style="margin:12px 0 0 0;font-size:13px;color:#555;">Reply to the lead by clicking reply (reply-to is set to client's email).</p>
+      </div>
+    </body></html>
+  `;
+
+  const text = `
+New Divine Automation enquiry
+
+Name: ${fullName || '—'}
+Company: ${companyName || '—'}
+Email: ${emailAddress || '—'}
+Phone: ${phoneNumber || '—'}
+Service interest: ${serviceInterest || '—'}
+Subject: ${subject || '—'}
+
+Message:
+${message || '—'}
+  `.trim();
+
+  const emailSubject = `Divine Automation enquiry from ${fullName || 'Client'}${subject ? ' — ' + subject : ''}`;
+
+  return { subject: emailSubject, text, html };
+}
+
+private buildDevineAutomationClientAckEmail(dto: DevineAutomationContactDto) {
+  const { fullName, serviceInterest } = dto;
+
+  const company =
+    this.configService.get<string>('DEVINE_NAME') || 'Divine Automation';
+  const website =
+    this.configService.get<string>('DEVINE_WEBSITE') || 'https://Divine-automation.example';
+  const support =
+    this.configService.get<string>('DEVINE_SUPPORT_EMAIL') || 'support@Divine-automation.example';
+  const phone =
+    this.configService.get<string>('DEVINE_PHONE') || '+91-9876543210';
+
+  const text = `Dear ${fullName || 'Client'},
+
+Thank you for reaching out to ${company}.
+
+We have received your enquiry${serviceInterest ? ` regarding "${serviceInterest}"` : ''} and our team will get back to you shortly.
+
+If it's urgent, you can contact us at:
+Phone: ${phone}
+Email: ${support}
+
+Regards,
+${company}
+${website}
+`;
+
+  const html = `
+  <!doctype html><html><head><meta charset="utf-8"></head>
+  <body style="font-family:Helvetica,Arial,sans-serif;color:#1b1f23;background:#f4f6f8;margin:0;padding:0;">
+    <div style="max-width:620px;margin:24px auto;padding:20px;background:#ffffff;border-radius:8px;border:1px solid #e6e9ec;">
+      <h2 style="margin-top:0;color:#0b2340;">Thanks — we received your enquiry</h2>
+      <p>Dear ${this.escapeHtml(fullName) || 'Client'},</p>
+      <p>
+        Thank you for contacting <strong>${this.escapeHtml(company)}</strong>${
+          serviceInterest
+            ? ` regarding <strong>${this.escapeHtml(serviceInterest)}</strong>`
+            : ''
+        }.
+        Our team will review your message and get back to you shortly.
+      </p>
+      <p>If you need immediate assistance, you can reach us at:</p>
+      <ul>
+        <li>Phone: ${this.escapeHtml(phone)}</li>
+        <li>Email: <a href="mailto:${support}">${support}</a></li>
+        <li>Website: <a href="${website}">${website}</a></li>
+      </ul>
+      <p>Best regards,<br/>${this.escapeHtml(company)}</p>
+    </div>
+  </body></html>
+  `;
+
+  return { text, html };
+}
+async devineAutomatinContact(dto: DevineAutomationContactDto) {
+  try {
+    const { fullName, emailAddress, subject } = dto;
+
+    // 1) Save in dedicated collection
+    const payload = {
+      ...dto,
+      formType: 'devineautomation',
+    };
+    const contact = new this.devineAutomationModel(payload);
+    await contact.save();
+
+    // 2) Build firm notification
+    const { subject: firmSubject, text: firmText, html: firmHtml } =
+      this.buildDevineAutomationFirmNotificationEmail(dto);
+
+    // 3) Resolve recipients
+    const gmailUser = this.configService.get<string>('GMAIL_USER');
+    const firmReceiver =
+      this.configService.get<string>('DEVINE_RECEIVER_EMAIL') ||
+      this.configService.get<string>('CONTACT_RECEIVER_EMAIL'); // fallback
+
+    if (firmReceiver) {
+      await this.transporter.sendMail({
+        from: `"${this.configService.get<string>('DEVINE_NAME') || 'Divine Automation'}" <${gmailUser}>`,
+        to: firmReceiver,
+        subject: firmSubject,
+        text: firmText,
+        html: firmHtml,
+        // replyTo: emailAddress || undefined,
+      });
+      console.log('DevineAutomation notification email sent to:', firmReceiver);
+    } else {
+      console.warn(
+        'DEVINE_RECEIVER_EMAIL / CONTACT_RECEIVER_EMAIL not set. DevineAutomation firm will not receive notifications.',
+      );
+    }
+
+    // 4) Acknowledgement to client
+    if (emailAddress) {
+      const { text: clientText, html: clientHtml } =
+        this.buildDevineAutomationClientAckEmail(dto);
+
+      await this.transporter.sendMail({
+        from: `"${this.configService.get<string>('DEVINE_NAME') || 'Divine Automation'}" <${gmailUser}>`,
+        to: emailAddress,
+        subject:
+          `${this.configService.get<string>('DEVINE_NAME') || 'Divine Automation'}` +
+          ` — We received your enquiry` +
+          (subject ? `: ${subject}` : ''),
+        text: clientText,
+        html: clientHtml,
+      });
+      console.log('DevineAutomation acknowledgement email sent to client:', emailAddress);
+    }
+
+    return new CustomResponse(
+      201,
+      'Divine Automation contact form submitted successfully',
+      contact,
+    );
+  } catch (e) {
+    console.error('Error submitting Divine Automation contact form:', e);
+    return new CustomError(500, 'Failed to submit Divine Automation contact form');
+  }
+}
+
 
 
 

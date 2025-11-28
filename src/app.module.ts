@@ -25,7 +25,7 @@ import { MessageModule } from './message/message.module';
 import { GoogleService } from './google/google.service';
 import { GoogleModule } from './google/google.module';
 import { PremiumGroupsModule } from './premium-group/premium-group.module';
-import { ChatModule } from './chat/chat.module';
+import { PremiumGroupMessageModule } from './premium-group/premium-group-message/premium-group-message.module';
 
 @Module({
   imports: [
@@ -53,7 +53,7 @@ import { ChatModule } from './chat/chat.module';
     MessageModule,
     GoogleModule,
     PremiumGroupsModule,
-    ChatModule
+    PremiumGroupMessageModule
   ],
   providers: [GoogleService],
 })

@@ -1,6 +1,6 @@
 // src/chat/chat.module.ts
 import { Module } from '@nestjs/common';
-import { ChatGateway } from './chat.gateway';
+import { ChatGateway } from 'src/socket/message.gateway';
 import { JwtModule } from '@nestjs/jwt';
 import { PremiumGroupsModule } from 'src/premium-group/premium-group.module';
 
@@ -12,5 +12,6 @@ import { PremiumGroupsModule } from 'src/premium-group/premium-group.module';
     PremiumGroupsModule,
   ],
   providers: [ChatGateway],
+  exports: [ChatGateway],
 })
 export class ChatModule {}

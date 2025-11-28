@@ -34,13 +34,7 @@ export class PremiumGroupsService {
         createdBy: new Types.ObjectId(adminId),
       });
       return await created.save();
-      /**
-       * Agar aap CustomResponse use karna chaho to yaha aise bhi kar sakte ho:
-       * return CustomResponse.success('Premium group created successfully', await created.save());
-       * (Adjust karo according to your CustomResponse implementation)
-       */
     } catch (error) {
-      // Centralized error handling
       throwException(error);
     }
   }
@@ -63,13 +57,10 @@ export class PremiumGroupsService {
     try {
       if (!durationHours || durationHours <= 0) {
         throw new BadRequestException('durationHours must be > 0');
-        /**
-         * Yaha agar CustomError use karna chaho:
-         * throwException(CustomError.INVALID_DURATION);
-         */
+    
       }
 
-      await this.findOne(groupId); // ensure group exists
+      await this.findOne(groupId);
 
       const userObjId = new Types.ObjectId(userId);
       const groupObjId = new Types.ObjectId(groupId);
@@ -112,7 +103,6 @@ export class PremiumGroupsService {
     }
   }
 
-  // USER: list active groups
   async findAllActive() {
     try {
       return await this.groupModel
@@ -129,10 +119,6 @@ export class PremiumGroupsService {
       const group = await this.groupModel.findById(groupId).exec();
       if (!group) {
         throw new NotFoundException('Premium group not found');
-        /**
-         * Yaha bhi CustomError use kar sakte ho:
-         * throwException(CustomError.PREMIUM_GROUP_NOT_FOUND);
-         */
       }
       // return group;
       return new CustomResponse(200, 'Premium Group Get', group);

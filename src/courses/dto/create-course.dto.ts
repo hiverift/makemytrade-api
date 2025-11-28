@@ -42,6 +42,9 @@ export class CreateCourseDto {
   @IsString()
   youtubeVideoId:string;
 
+@IsString()
+  googleMeetLink?:string;
+
   // @IsOptional()
   // @IsMongoId()
   // subCategoryId?: string;

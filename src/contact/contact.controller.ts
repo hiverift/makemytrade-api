@@ -19,8 +19,12 @@ export class ContactController {
 
   @Post('createRightPricePumpsContact')
   createRightPricePumpsContact(@Body() dto: any) {
-    console.log('dot', dto)
     return this.service.createRightPricePumpsContact(dto);
+  }
+
+  @Post('devines-contact')
+  devineAutomatinContact(@Body() dto: any) {
+    return this.service.devineAutomatinContact(dto);
   }
 
   @Get()

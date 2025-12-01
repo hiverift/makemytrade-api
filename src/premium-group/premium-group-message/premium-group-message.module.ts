@@ -13,14 +13,14 @@ import { ChatGateway } from 'src/chat/chat.gateway';
       { name: PremiumGroupMessage.name, schema: PremiumGroupMessageSchema },
     ]),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'lokeshkumar', // match your existing config
-      signOptions: { expiresIn: '7d' },            // match your existing config
+      secret: process.env.JWT_SECRET || 'lokeshkumar',
+      signOptions: { expiresIn: '7d' },           
     }),
-    forwardRef(() => PremiumGroupsModule),         // 👈 where PremiumGroupsService lives
+    forwardRef(() => PremiumGroupsModule),   
   ],
   providers: [
     PremiumGroupMessagesService,
-    ChatGateway,                                   // ChatGateway depends on PremiumGroupsService
+    ChatGateway,                             
   ],
   exports: [PremiumGroupMessagesService, ChatGateway],
 })

@@ -23,6 +23,7 @@ import { PremiumGroupMessage, PremiumGroupMessageSchema } from './premium-group-
     ]),
     PremiumGroupMessageModule,
   ],
+  controllers: [PremiumGroupsController],
   providers: [PremiumGroupsService, PremiumGroupMessagesService],
   exports: [PremiumGroupsService,PremiumGroupMessagesService],
 })

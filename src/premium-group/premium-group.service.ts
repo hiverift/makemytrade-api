@@ -211,9 +211,10 @@ export class PremiumGroupsService {
       console.log('Checking access for user:', userId, 'group:', groupId, 'at', now);
       const record = await this.accessModel.findOne({
         userId: new Types.ObjectId(userId),
-        groupId: new Types.ObjectId(groupId),
+        groupId: new Types.ObjectId(groupId), 
         expiresAt: { $gt: now },
       });
+      console.log('Access record found:', record);
       if (!record) return { hasAccess: false };
       return { hasAccess: true, expiresAt: record.expiresAt };
     } catch (error) {

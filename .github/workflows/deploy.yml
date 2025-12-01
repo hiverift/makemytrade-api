@@ -26,7 +26,7 @@ jobs:
             cd ~/makemytrade-api || { git clone https://github.com/hiverift/makemytrade-api.git ~/makemytrade-api && cd ~/makemytrade-api; }
             git fetch --all
             git reset --hard origin/main
-            npm ci
+            npm i
             npm run build
             pm2 restart makemytrade-api || pm2 start dist/main.js --name makemytrade-api
             pm2 save

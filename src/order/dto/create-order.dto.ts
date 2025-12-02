@@ -9,11 +9,13 @@ export class CreateOrderDto {
   @IsString()
   webinarId?: string;
 
- @IsOptional()
- @IsString()
- userId?:string;
+  @IsOptional()
+  @IsString()
+  userId?:string;
 
-
+  @IsOptional()
+  @IsString()
+  ChatId?:string;
 
   @IsOptional()
   @IsString()

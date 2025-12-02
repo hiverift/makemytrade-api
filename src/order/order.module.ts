@@ -12,6 +12,7 @@ import { UsersModule } from 'src/users/users.module';
 import { CoursesModule } from 'src/courses/courses.module';
 import { WebinarsModule } from 'src/webinar/webinar.module';
 import { BookingsModule } from 'src/bookings/bookings.module';
+import { PremiumGroupsModule } from 'src/premium-group/premium-group.module';
 @Module({
   imports: [
     ConfigModule,
@@ -20,6 +21,7 @@ import { BookingsModule } from 'src/bookings/bookings.module';
     CoursesModule,
     WebinarsModule,
     BookingsModule,
+    PremiumGroupsModule
   ],
   controllers: [OrdersController, PaymentsController],
   providers: [OrdersService],

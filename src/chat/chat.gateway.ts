@@ -18,7 +18,7 @@ interface AuthPayload {
   sub: string;
 }
 
-@WebSocketGateway({
+@WebSocketGateway({ 
   namespace: 'chat',
   cors: {
     origin: '*',

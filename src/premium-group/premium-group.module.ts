@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PremiumGroupsService } from './premium-group.service';
 import { PremiumGroupsController } from './premium-group.controller';
-import { PremiumGroup,PremiumGroupSchema } from './entities/premium-group.entity';
+import { PremiumGroup, PremiumGroupSchema } from './entities/premium-group.entity';
 import {
   PremiumGroupAccess,
   PremiumGroupAccessSchema,
@@ -12,6 +12,7 @@ import { PremiumGroupMessageController } from './premium-group-message/premium-g
 import { PremiumGroupMessagesService } from './premium-group-message/premium-group-message.service';
 import { PremiumGroupMessageModule } from './premium-group-message/premium-group-message.module';
 import { PremiumGroupMessage, PremiumGroupMessageSchema } from './premium-group-message/enties/premium-group-message.schema';
+import { OrdersModule } from 'src/order/order.module';
 
 @Module({
   imports: [
@@ -25,6 +26,6 @@ import { PremiumGroupMessage, PremiumGroupMessageSchema } from './premium-group-
   ],
   controllers: [PremiumGroupsController],
   providers: [PremiumGroupsService, PremiumGroupMessagesService],
-  exports: [PremiumGroupsService,PremiumGroupMessagesService],
+  exports: [PremiumGroupsService, PremiumGroupMessagesService],
 })
-export class PremiumGroupsModule {}
+export class PremiumGroupsModule { }

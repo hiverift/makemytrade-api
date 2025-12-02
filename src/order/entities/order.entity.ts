@@ -34,7 +34,8 @@ export class PaymentInfo {
 
   @Prop({ type: String, required: false })
   currency?: string;
-
+  @Prop({ type: String, required: false })
+  ChatId?: string;
   // <= HERE: explicitly tell Mongoose it's an object (free-form notes)
   @Prop({ type: Object, required: false, default: {} })
   notes?: Record<string, any>;
@@ -47,8 +48,8 @@ export class Order {
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   user?: Types.ObjectId;
 
-  @Prop({required:false})
-  userId?:string;
+  @Prop({ required: false })
+  userId?: string;
 
   @Prop({ type: String, required: false, unique: true, sparse: true })
   orderId?: string;
@@ -61,6 +62,9 @@ export class Order {
 
   @Prop({ type: String, required: false })
   appointmentId?: string;
+  
+  @Prop({ type: String, required: false })
+  ChatId?: string;
 
   @Prop({ type: String, enum: ['course', 'webinar', 'appointment'], required: false })
   itemType?: string;

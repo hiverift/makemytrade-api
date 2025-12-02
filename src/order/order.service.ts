@@ -97,6 +97,7 @@ export class OrdersService {
         orderId: orderRef,                  // <--- new line
         userId: dto.userId ? new Types.ObjectId(dto.userId) : undefined,
         courseId: courseId || undefined,
+        ChatId: ChatId || undefined,
         webinarId: webinarId || undefined,
         appointmentId: appointmentId || undefined,
         itemType: resolvedType,
@@ -137,6 +138,7 @@ export class OrdersService {
           courseId: (order.courseId ?? null) as string | number | null,
           webinarId: (order.webinarId ?? null) as string | number | null,
           appointmentId: (order.appointmentId ?? null) as string | number | null,
+          chatId: (order.ChatId ?? null) as string | number | null,
         },
       });
 

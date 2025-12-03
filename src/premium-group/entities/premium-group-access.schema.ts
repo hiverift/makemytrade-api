@@ -18,8 +18,8 @@ export class PremiumGroupAccess {
   planId?: Types.ObjectId;
 
   // ✅ plan ke hisab se kitna amount gaya (discount vs offer ho to override bhi ho sakta)
-  @Prop({ type: Number, required: true })
-  amountPaid: number;
+  @Prop({ type: Number, required: false })
+  amountPaid?: number;
 
   @Prop({ type: String, default: 'INR' })
   currency: string;

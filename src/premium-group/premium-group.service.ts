@@ -210,6 +210,7 @@ export class PremiumGroupsService {
   // check access
   async hasActiveAccess(userId: string, groupId: string) {
     try {
+      console.log('hasActiveAccess called with userId:', userId, 'groupId:', groupId);
       const now = new Date();
       console.log('Checking access for user:', userId, 'group:', groupId, 'at', now);
       const record = await this.accessModel.findOne({

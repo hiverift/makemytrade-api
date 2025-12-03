@@ -70,12 +70,13 @@ export class PremiumGroupsController {
     @Req() req: any,
   ) {
     const userId = req.user?.userId;
+    console.log('Buying access for userId:', userId, 'groupId:', groupId, 'with dto:', dto);
     return this.service.buyAccess(userId, groupId, dto);
   }
 
   // check access for app
   @Get('premium-groups/:id/access')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async checkAccess(@Param('id') groupId: string, @Req() req: any) {
     const userId = req.user?.userId;
     return this.service.hasActiveAccess(userId, groupId);

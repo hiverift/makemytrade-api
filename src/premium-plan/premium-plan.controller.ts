@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, UseGuards, Get, Patch, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Param, UseGuards, Get, Patch, Delete, Query } from '@nestjs/common';
 import { PremiumPlanService } from './premium-plan.service';
 import { CreatePremiumPlanDto } from './dto/create-premium-plan.dto';
 import { UpdatePremiumPlanDto } from './dto/update-premium-plan.dto';
@@ -32,7 +32,8 @@ export class PremiumPlanController {
   // Public: list plans for a group (no admin required, client will call)
   @Get()
   // @UseGuards(JwtAuthGuard) // optional: require auth if you want
-  async list(@Param('groupId') groupId: string) {
+  async list(@Query('groupId') groupId: string) {
+    console.log('Controller: Listing plans for groupId:', groupId);
     return this.planService.findByGroup(groupId);
   }
 }

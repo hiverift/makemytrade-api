@@ -37,6 +37,7 @@ export class PremiumPlanService {
   }
 
   async findByGroup(groupId: string) {
+    console.log('Finding plans for groupId:', groupId);
     return this.planModel.find({ groupId: new Types.ObjectId(groupId), isActive: true }).sort({ amount: 1 }).lean();
   }
 

@@ -13,6 +13,7 @@ import { CoursesModule } from 'src/courses/courses.module';
 import { WebinarsModule } from 'src/webinar/webinar.module';
 import { BookingsModule } from 'src/bookings/bookings.module';
 import { PremiumGroupsModule } from 'src/premium-group/premium-group.module';
+import { PremiumPlanModule } from 'src/premium-plan/premium-plan.module';
 @Module({
   imports: [
     ConfigModule,
@@ -21,7 +22,8 @@ import { PremiumGroupsModule } from 'src/premium-group/premium-group.module';
     CoursesModule,
     WebinarsModule,
     BookingsModule,
-    PremiumGroupsModule
+    PremiumGroupsModule,
+    PremiumPlanModule,
   ],
   controllers: [OrdersController, PaymentsController],
   providers: [OrdersService],

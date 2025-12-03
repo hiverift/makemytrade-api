@@ -62,9 +62,9 @@ export class Order {
 
   @Prop({ type: String, required: false })
   appointmentId?: string;
-  
+
   @Prop({ type: String, required: false })
-  ChatId?: string;
+  PlanId?: string;
 
   @Prop({ type: String, enum: ['course', 'webinar', 'appointment'], required: false })
   itemType?: string;

@@ -21,7 +21,7 @@ import { CoursesService } from 'src/courses/courses.service';
 import { WebinarsService } from 'src/webinar/webinar.service';
 import { BookingsService } from 'src/bookings/bookings.service';
 
-import { PremiumGroupsService } from 'src/premium-group/premium-group.service';
+import { PremiumPlanService } from 'src/premium-plan/premium-plan.service';
 @Injectable()
 export class OrdersService {
   private razorpay: Razorpay;
@@ -34,7 +34,7 @@ export class OrdersService {
     private coursesService: CoursesService,
     private webinarsService: WebinarsService,
     private appointmentsService: BookingsService,
-    private premiumGroupsService: PremiumGroupsService,
+    private premiumPlanService: PremiumPlanService,
   ) {
     this.razorpay = new Razorpay({
       key_id: this.configService.get('RAZORPAY_KEY_ID'),
@@ -62,10 +62,10 @@ export class OrdersService {
     try {
 
       // Determine which ID provided
-      const { courseId, webinarId, appointmentId, itemType,ChatId } = dto;
+      const { courseId, webinarId, appointmentId, itemType, PlanId } = dto;
 
-      if (!courseId && !webinarId && !appointmentId && !ChatId) {
-        throw new CustomError(400, 'One of courseId | webinarId | appointmentId | ChatId is required');
+      if (!courseId && !webinarId && !appointmentId && !PlanId) {
+        throw new CustomError(400, 'One of courseId | webinarId | appointmentId | PlanId is required');
       }
 
       // Resolve actual itemType if not provided
@@ -77,7 +77,7 @@ export class OrdersService {
       }
 
       // Resolve price
-      const pricePaise = await this.resolvePriceByIds({ courseId, webinarId, appointmentId, resolvedType,ChatId });
+      const pricePaise = await this.resolvePriceByIds({ courseId, webinarId, appointmentId, resolvedType, PlanId });
       if (pricePaise == null) throw new CustomError(404, 'Requested item not found');
       console.log('check price from courses', pricePaise)
       // Check optional client-provided amount
@@ -97,7 +97,7 @@ export class OrdersService {
         orderId: orderRef,                  // <--- new line
         userId: dto.userId ? new Types.ObjectId(dto.userId) : undefined,
         courseId: courseId || undefined,
-        ChatId: ChatId || undefined,
+        PlanId: PlanId || undefined,
         webinarId: webinarId || undefined,
         appointmentId: appointmentId || undefined,
         itemType: resolvedType,
@@ -138,7 +138,7 @@ export class OrdersService {
           courseId: (order.courseId ?? null) as string | number | null,
           webinarId: (order.webinarId ?? null) as string | number | null,
           appointmentId: (order.appointmentId ?? null) as string | number | null,
-          chatId: (order.ChatId ?? null) as string | number | null,
+          PlanId: (order.PlanId ?? null) as string | number | null,
         },
       });
 
@@ -277,9 +277,9 @@ export class OrdersService {
   }
 
   /** Resolve price using whichever ID provided (returns paise) */
-  private async resolvePriceByIds({ courseId, webinarId, appointmentId, resolvedType ,ChatId }: { courseId?: string; webinarId?: string; appointmentId?: string; resolvedType?: string; ChatId?:string }): Promise<number | null> {
+  private async resolvePriceByIds({ courseId, webinarId, appointmentId, resolvedType, PlanId }: { courseId?: string; webinarId?: string; appointmentId?: string; resolvedType?: string; PlanId?: string }): Promise<number | null> {
     try {
-      console.log('ChatId', ChatId);
+      console.log('PlanId', PlanId);
       console.log('appointmentId', appointmentId);
       if (courseId) {
         const raw = await this.coursesService.findById(courseId);
@@ -305,19 +305,21 @@ export class OrdersService {
         const rupees = (appointment.result.amount ?? appointment.result.amount ?? 0) as number;
         return Math.round(rupees * 100);
       }
-       if (ChatId) {
-        const raw = await this.premiumGroupsService.findOne(ChatId);
+      if (PlanId) {
+
+        const raw = await this.premiumPlanService.findOne(PlanId);
+        console.log('raw', raw)
         const appointment = this.extractEntity(raw);
         if (!appointment) return null;
-         const rupees = (appointment.result.pricePerHour ?? appointment.result.pricePerHour ?? 0) as number;
-         return Math.round(rupees * 100);
+        const rupees = (appointment.amount ?? appointment.amount ?? 0) as number;
+        return Math.round(rupees * 100);
       }
 
       // fallback: use resolvedType with IDs not given (shouldn't occur)
       if (resolvedType === 'course' && courseId) return this.resolvePriceByIds({ courseId });
       if (resolvedType === 'webinar' && webinarId) return this.resolvePriceByIds({ webinarId });
       if (resolvedType === 'appointment' && appointmentId) return this.resolvePriceByIds({ appointmentId });
-      if (resolvedType === 'chatId' && ChatId) return this.resolvePriceByIds({ ChatId });
+      if (resolvedType === 'PlanId' && PlanId) return this.resolvePriceByIds({ PlanId });
       return null;
     } catch (err) {
       this.logger.error('resolvePriceByIds error', err);
@@ -554,7 +556,7 @@ export class OrdersService {
       .find({
         itemType,
         status: OrderStatus.PAID,
-         'payment.status': 'captured'
+        'payment.status': 'captured'
       })
       .sort({ createdAt: -1 })
       .limit(limit)

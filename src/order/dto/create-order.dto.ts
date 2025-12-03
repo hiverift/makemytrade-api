@@ -15,7 +15,7 @@ export class CreateOrderDto {
 
   @IsOptional()
   @IsString()
-  ChatId?:string;
+  PlanId?:string;
 
   @IsOptional()
   @IsString()
@@ -24,7 +24,7 @@ export class CreateOrderDto {
   // optional helper but not required
   @IsOptional()
   @IsIn(['course', 'webinar', 'appointment'])
-  itemType?: 'course' | 'webinar' | 'appointment';
+  itemType?: 'course' | 'webinar' | 'appointment' | 'Plan';
 
   // optional client-provided amount (we will validate server-side)
   @IsOptional()

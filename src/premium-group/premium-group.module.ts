@@ -13,6 +13,7 @@ import { PremiumGroupMessagesService } from './premium-group-message/premium-gro
 import { PremiumGroupMessageModule } from './premium-group-message/premium-group-message.module';
 import { PremiumGroupMessage, PremiumGroupMessageSchema } from './premium-group-message/enties/premium-group-message.schema';
 import { OrdersModule } from 'src/order/order.module';
+import { PremiumPlan, PremiumPlanSchema } from './entities/premium-plan.schema';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { OrdersModule } from 'src/order/order.module';
       { name: PremiumGroupAccess.name, schema: PremiumGroupAccessSchema },
       { name: PremiumGroup.name, schema: PremiumGroupSchema },
       { name: PremiumGroupMessage.name, schema: PremiumGroupMessageSchema },
+       { name: PremiumPlan.name, schema: PremiumPlanSchema },
     ]),
     PremiumGroupMessageModule,
   ],

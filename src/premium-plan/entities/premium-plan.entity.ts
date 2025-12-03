@@ -1,12 +1,15 @@
-// src/premium-groups/entities/premium-group.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { PremiumGroup } from 'src/premium-group/entities/premium-group.entity';
 
-export type PremiumGroupDocument = PremiumGroup & Document;
+export type PremiumPlanDocument = PremiumPlan & Document;
 
 @Schema({ timestamps: true })
-export class PremiumGroup {
- @Prop({ required: true })
+export class PremiumPlan {
+  @Prop({ type: Types.ObjectId, ref: PremiumGroup.name, required: true })
+  groupId: Types.ObjectId;
+
+  @Prop({ required: true })
   name: string; // e.g. "1 Day Plan", "7 Days Plan"
 
   @Prop({ required: true })
@@ -23,9 +26,6 @@ export class PremiumGroup {
 
   @Prop({ type: Boolean, default: true })
   isActive: boolean;
-
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  createdBy: Types.ObjectId;
 }
 
-export const PremiumGroupSchema = SchemaFactory.createForClass(PremiumGroup);
+export const PremiumPlanSchema = SchemaFactory.createForClass(PremiumPlan);

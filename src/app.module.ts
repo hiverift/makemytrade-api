@@ -26,6 +26,7 @@ import { GoogleService } from './google/google.service';
 import { GoogleModule } from './google/google.module';
 import { PremiumGroupsModule } from './premium-group/premium-group.module';
 import { PremiumGroupMessageModule } from './premium-group/premium-group-message/premium-group-message.module';
+import { PremiumPlanModule } from './premium-plan/premium-plan.module';
 
 @Module({
   imports: [
@@ -53,7 +54,8 @@ import { PremiumGroupMessageModule } from './premium-group/premium-group-message
     MessageModule,
     GoogleModule,
     PremiumGroupsModule,
-    PremiumGroupMessageModule
+    PremiumGroupMessageModule,
+    PremiumPlanModule
   ],
   providers: [GoogleService],
 })

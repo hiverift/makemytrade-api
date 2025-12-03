@@ -13,6 +13,7 @@ import { BuyAccessDto } from './dto/buy-access.dto';
 import CustomResponse from 'src/providers/custom-response.service';
 import CustomError from 'src/providers/customer-error.service';
 import { throwException } from 'src/util/errorhandling';
+import { PremiumPlan, PremiumPlanDocument } from './entities/premium-plan.schema';
 
 @Injectable()
 export class PremiumGroupsService {
@@ -21,6 +22,8 @@ export class PremiumGroupsService {
     private readonly groupModel: Model<PremiumGroupDocument>,
     @InjectModel(PremiumGroupAccess.name)
     private readonly accessModel: Model<PremiumGroupAccessDocument>,
+     @InjectModel(PremiumPlan.name)
+    private readonly planModel: Model<PremiumPlanDocument>,
   ) { }
 
   // ADMIN: create group

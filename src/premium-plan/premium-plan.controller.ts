@@ -11,7 +11,8 @@ export class PremiumPlanController {
   // Admin creates a plan for a group
   @Post()
   // @UseGuards(JwtAuthGuard)
-  async create(@Param('groupId') groupId: string, @Body() dto: CreatePremiumPlanDto) {
+  async create(@Query('groupId') groupId: string, @Body() dto: CreatePremiumPlanDto) {
+    console.log('Creating plan for groupId:', groupId, 'with data:', dto);
     return this.planService.create(groupId, dto);
   }
 
